@@ -133,8 +133,11 @@
   console.log("⏳ Отправляем данные в Telegram:");
   console.log({ items, total });
 
+  if (tg && tg.sendData) {
   tg.sendData(JSON.stringify({ items, total }));
-  tg.close();
+  setTimeout(() => tg.close(), 500);  // пауза 500 мс для гарантированной отправки
+}
+
 }
 
     function renderCategory(titleText, items) {
