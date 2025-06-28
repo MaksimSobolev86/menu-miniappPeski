@@ -99,16 +99,16 @@
 
     function addToCart(name, price, type) {
       let qty = 1;
-      let title = name;
+      let displayName = name;
       let total = price;
 
       if (type.toLowerCase() === "граммы") {
         qty = 300;
         total = Math.round(price * 3);
-        title = `${name} — 300 г`;
+        displayName = `${name} — 300 г`;
       }
 
-      cart.push({ name: title, price: total });
+      cart.push({ name: name, qty: qty, price: price, display: displayName, total });
       renderCart();
     }
 
@@ -118,12 +118,19 @@
         cartBox.innerText = 'Корзина пуста';
         return;
       }
-      cartBox.innerHTML = cart.map(item => `• ${item.name} — ${item.price}₽`).join('<br>');
+      cartBox.innerHTML = cart.map(item => `• ${item.display} — ${item.total}₽`).join('<br>');
     }
 
     function submitCart() {
       const tg = window.Telegram.WebApp;
-      tg.sendData(JSON.stringify(cart));
+      const items = cart.map(item => ({
+        name: item.name,
+        qty: item.qty,
+        price: item.price
+      }));
+      const total = cart.reduce((sum, item) => sum + item.total, 0);
+
+      tg.sendData(JSON.stringify({ items, total }));
       tg.close();
     }
 
