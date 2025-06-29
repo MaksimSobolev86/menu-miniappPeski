@@ -8,17 +8,12 @@
   <style>
     body {
       font-family: sans-serif;
-      background-image: url('Group 1171274963.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: repeat;
+      background-color: #f5f5f5;
       margin: 0;
       padding: 1rem;
     }
     h2 {
       text-align: center;
-      color: #fff;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
     }
     .category-section {
       margin-bottom: 2rem;
@@ -26,8 +21,6 @@
     .category-title {
       font-size: 1.2rem;
       margin: 1rem 0 0.5rem 0.5rem;
-      color: #fff;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
     }
     .carousel {
       display: flex;
@@ -99,12 +92,10 @@
 
     function addToCart(name, price, type) {
       let qty = 1;
-
       if (type.toLowerCase() === "граммы") {
         qty = 300;
       }
-
-      cart.push({ name: name, qty: qty, price: price });
+      cart.push({ name, qty, price });
       renderCart();
     }
 
@@ -120,45 +111,27 @@
     }
 
     function submitCart() {
-  const tg = window.Telegram.WebApp;
+      const tg = window.Telegram.WebApp;
 
-  const items = cart.map(item => ({
-    name: item.name,
-    qty: item.qty,
-    price: item.price
-  }));
-  const total = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
+      const items = cart.map(item => ({
+        name: item.name,
+        qty: item.qty,
+        price: item.price
+      }));
+      const total = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
 
-  alert("📤 Попытка отправки"); // проверка что кнопка сработала
+      alert("📤 Попытка отправки");
 
-  console.log("✅ tg объект:", tg);
-  console.log("✅ tg.sendData:", typeof tg.sendData);
+      console.log("✅ tg объект:", tg);
+      console.log("✅ tg.sendData:", typeof tg.sendData);
 
-  if (tg && typeof tg.sendData === "function") {
-    tg.sendData(JSON.stringify({ items, total }));
-    setTimeout(() => tg.close(), 500);
-  } else {
-    alert("❌ tg.sendData недоступен (возможно не Telegram)");
-  }
-}
-
-  const items = cart.map(item => ({
-    name: item.name,
-    qty: item.qty,
-    price: item.price
-  }));
-  const total = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
-
-  alert("📤 Данные отправлены в Telegram!"); // ⬅️ эта строка для проверки
-  console.log("⏳ Отправляем данные в Telegram:");
-  console.log({ items, total });
-
-  if (tg && tg.sendData) {
-  tg.sendData(JSON.stringify({ items, total }));
-  setTimeout(() => tg.close(), 500);  // пауза 500 мс для гарантированной отправки
-}
-
-}
+      if (tg && typeof tg.sendData === "function") {
+        tg.sendData(JSON.stringify({ items, total }));
+        setTimeout(() => tg.close(), 500);
+      } else {
+        alert("❌ tg.sendData недоступен (возможно не Telegram)");
+      }
+    }
 
     function renderCategory(titleText, items) {
       const container = document.getElementById('products');
@@ -175,9 +148,13 @@
       items.forEach(item => {
         const el = document.createElement('div');
         el.className = 'product';
-        let displayPrice = item["Тип"]?.toLowerCase() === "граммы" ? `${item.Цена}₽ / 100г` : `${item.Цена}₽`;
+        let displayPrice = item["Тип"]?.toLowerCase() === "граммы"
+          ? `${item.Цена}₽ / 100г`
+          : `${item.Цена}₽`;
 
-        const photoUrl = item.Фото && item.Фото.trim() !== '' ? item.Фото : 'https://via.placeholder.com/300x200?text=Нет+фото';
+        const photoUrl = item.Фото && item.Фото.trim() !== ''
+          ? item.Фото
+          : 'https://via.placeholder.com/300x200?text=Нет+фото';
 
         el.innerHTML = `
           <img src="${photoUrl}" alt="${item.Название}" />
@@ -196,6 +173,9 @@
     fetch(sheetUrl)
       .then(res => res.json())
       .then(data => {
+        console.log("📦 Загружены данные:", data);
+        console.log("💡 Всего строк в меню:", data.length);
+
         const mangalItems = data.filter(row => row["Тип"]?.toLowerCase() === "граммы");
         const kazanItems = data.filter(row => row["Тип"]?.toLowerCase() === "казан");
 
@@ -206,15 +186,22 @@
           renderCategory("Казан меню", kazanItems);
         }
 
-        const container = document.getElementById('products');
-        const banquetTitle = document.createElement('div');
-        banquetTitle.className = 'category-title';
-        banquetTitle.innerText = 'Банкетное меню';
-        container.appendChild(banquetTitle);
+        const banquetItems = data.filter(row => row["Тип"]?.toLowerCase() === "меню");
+        if (banquetItems.length > 0) {
+          const container = document.getElementById('products');
+          const banquetTitle = document.createElement('div');
+          banquetTitle.className = 'category-title';
+          banquetTitle.innerText = 'Банкетное меню';
+          container.appendChild(banquetTitle);
+        }
+      })
+      .catch(error => {
+        console.error("❌ Ошибка при загрузке меню:", error);
       });
-      window.addEventListener("DOMContentLoaded", () => {
-        Telegram.WebApp.ready();
-      });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      Telegram.WebApp.ready();
+    });
   </script>
 </body>
 </html>
