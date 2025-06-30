@@ -12,7 +12,15 @@
       background: #f5f5f5 url('Group 1171274963.png') repeat;
       padding: 1rem;
     }
-    h2 { margin-top: 2rem; margin-bottom: 0.5rem; }
+    h1 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      font-size: 22px;
+    }
+    h2 {
+      font-size: 18px;
+      margin: 1.5rem 0 0.5rem;
+    }
     .carousel {
       display: flex;
       overflow-x: auto;
@@ -33,17 +41,29 @@
       object-fit: cover;
       border-radius: 8px;
     }
-    .product h3 { font-size: 16px; margin: 0.5rem 0 0.25rem; }
-    .product p { margin: 0 0 0.5rem; font-size: 14px; }
+    .product h3 {
+      font-size: 16px;
+      margin: 0.5rem 0 0.25rem;
+    }
+    .product p {
+      margin: 0 0 0.5rem;
+      font-size: 14px;
+    }
     .product button {
-      width: 100%; padding: 0.5rem; font-size: 15px;
-      background: #2196f3; color: #fff; border: none; border-radius: 6px;
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 15px;
+      background: #2196f3;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <h1>Меню</h1>
-  <div id="menu"></div>
+  <div id="menu">🔄 Загрузка...</div>
 
   <script>
     Telegram.WebApp.ready();
@@ -53,11 +73,13 @@
     function addToCart(name, price, type) {
       const qty = type.toLowerCase() === 'граммы' ? 300 : 1;
       cart.push({ name, qty, price });
+      alert(`Добавлено в корзину: ${name}`);
     }
 
     function createCarousel(title, items) {
       const menu = document.getElementById("menu");
       const section = document.createElement("div");
+
       const heading = document.createElement("h2");
       heading.innerText = title;
       section.appendChild(heading);
@@ -97,6 +119,7 @@
     fetch(sheetUrl)
       .then(res => res.json())
       .then(data => {
+        console.log("📦 Данные получены:", data);
         const categories = {
           "Мангал меню": [],
           "Казан меню": [],
@@ -110,9 +133,16 @@
           else if (type === "меню" || type === "праздник") categories["Банкетное меню"].push(item);
         });
 
+        const menuBox = document.getElementById("menu");
+        menuBox.innerHTML = ""; // Очистим "Загрузка..."
+
         Object.entries(categories).forEach(([title, items]) => {
           if (items.length > 0) createCarousel(title, items);
         });
+      })
+      .catch(err => {
+        console.error("❌ Ошибка загрузки:", err);
+        document.getElementById("menu").innerText = "❌ Ошибка загрузки данных";
       });
   </script>
 </body>
