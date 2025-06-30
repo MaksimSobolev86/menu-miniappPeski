@@ -9,11 +9,13 @@
     body {
       margin: 0;
       font-family: sans-serif;
-      background: #f5f5f5;
+      background: url('group-bg.png') no-repeat center center fixed;
+      background-size: cover;
       padding: 1rem;
     }
     h1 {
       text-align: center;
+      color: #fff;
     }
     .carousel {
       display: flex;
@@ -53,16 +55,45 @@
       border-radius: 5px;
       cursor: pointer;
     }
+    #cart {
+      background: rgba(255,255,255,0.9);
+      padding: 1rem;
+      margin-top: 2rem;
+      border-radius: 8px;
+    }
+    #submit {
+      margin: 1rem auto 2rem auto;
+      display: block;
+      font-size: 18px;
+      padding: 1rem 2rem;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <h1>Меню</h1>
   <div id="menu"></div>
+  <div id="cart">Корзина пуста</div>
+  <button id="submit">📤 Отправить заказ</button>
 
   <script>
     Telegram.WebApp.ready();
 
-    const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu"; // замени на свою таблицу
+    const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
+    const cart = [];
+
+    function renderCart() {
+      const cartBox = document.getElementById('cart');
+      if (cart.length === 0) {
+        cartBox.innerText = 'Корзина пуста';
+        return;
+      }
+      cartBox.innerHTML = cart.map(item => `• ${item.name} × ${item.qty} — ${item.qty * item.price}₽`).join('<br>');
+    }
 
     fetch(sheetUrl)
       .then(res => res.json())
@@ -80,6 +111,7 @@
         for (const [category, items] of Object.entries(grouped)) {
           const title = document.createElement("h2");
           title.innerText = category;
+          title.style.color = '#fff';
           container.appendChild(title);
 
           const row = document.createElement("div");
@@ -107,7 +139,15 @@
 
             const btn = document.createElement("button");
             btn.innerText = "Добавить";
-            btn.onclick = () => alert(`Добавлено: ${item.Название}`);
+            btn.onclick = () => {
+              const existing = cart.find(c => c.name === item.Название);
+              if (existing) {
+                existing.qty += 1;
+              } else {
+                cart.push({ name: item.Название, qty: 1, price: parseFloat(item.Цена) });
+              }
+              renderCart();
+            };
             card.appendChild(btn);
 
             row.appendChild(card);
@@ -120,6 +160,17 @@
         document.getElementById("menu").innerText = "Ошибка загрузки данных.";
         console.error(e);
       });
+
+    document.getElementById("submit").onclick = () => {
+      if (cart.length === 0) {
+        alert("Корзина пуста");
+        return;
+      }
+      const total = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
+      const payload = { items: cart, total };
+      Telegram.WebApp.sendData(JSON.stringify(payload));
+      Telegram.WebApp.close();
+    };
   </script>
 </body>
 </html>
