@@ -9,13 +9,18 @@
     body {
       margin: 0;
       font-family: sans-serif;
-      background: url('Group%201171274963.png') repeat;
-      background-size: 80px;
+      background: url('Group%201171274963.png') no-repeat center center fixed;
+      background-size: 100% 100%;
       padding: 1rem;
+    }
+    h1 {
+      font-size: 24px;
+      color: #000;
     }
     h2 {
       margin-top: 2rem;
       margin-bottom: 0.5rem;
+      color: #000;
     }
     .carousel {
       display: flex;
@@ -62,10 +67,6 @@
       background: #fff;
       padding: 1rem;
       box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
     }
     #cartItems {
       font-size: 14px;
@@ -73,7 +74,7 @@
     }
     #sendBtn {
       width: 100%;
-      font-size: 16px;
+      font-size: 18px;
       padding: 1rem;
       background: #007bff;
       color: white;
@@ -171,8 +172,10 @@
           "Банкетное меню": []
         };
         data.forEach(item => {
-          const cat = item.Категория?.trim();
-          if (categories[cat]) categories[cat].push(item);
+          const type = item.Тип?.toLowerCase();
+          if (type === "граммы") categories["Мангал меню"].push(item);
+          else if (type === "казан") categories["Казан меню"].push(item);
+          else if (type === "меню" || type === "праздник") categories["Банкетное меню"].push(item);
         });
         Object.entries(categories).forEach(([title, items]) => {
           if (items.length > 0) createCarousel(title, items);
