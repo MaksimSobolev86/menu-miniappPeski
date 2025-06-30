@@ -9,17 +9,13 @@
     body {
       margin: 0;
       font-family: sans-serif;
-      background: #f5f5f5 url('Group 1171274963.png') repeat;
+      background: #f5f5f5 url('Group%201171274963.png') repeat;
+      background-size: 150px;
       padding: 1rem;
     }
-    h1 {
-      margin-top: 0;
-      margin-bottom: 1rem;
-      font-size: 22px;
-    }
     h2 {
-      font-size: 18px;
-      margin: 1.5rem 0 0.5rem;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
     }
     .carousel {
       display: flex;
@@ -57,23 +53,74 @@
       color: #fff;
       border: none;
       border-radius: 6px;
-      cursor: pointer;
+    }
+    .cart-box {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 -1px 5px rgba(0,0,0,0.1);
+      margin-top: 2rem;
+    }
+    .cart-box h3 {
+      margin-top: 0;
+    }
+    .cart-item {
+      font-size: 14px;
+      margin: 0.25rem 0;
+    }
+    .submit-btn {
+      margin-top: 1rem;
+      width: 100%;
+      font-size: 18px;
+      padding: 0.75rem;
+      background: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
   <h1>Меню</h1>
-  <div id="menu">🔄 Загрузка...</div>
+  <div id="menu"></div>
+  <div class="cart-box" id="cart-box" style="display:none">
+    <h3>Корзина</h3>
+    <div id="cart-items"></div>
+    <button class="submit-btn" onclick="submitCart()">📤 Отправить заказ</button>
+  </div>
 
   <script>
     Telegram.WebApp.ready();
+
     const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
     const cart = [];
 
     function addToCart(name, price, type) {
       const qty = type.toLowerCase() === 'граммы' ? 300 : 1;
       cart.push({ name, qty, price });
-      alert(`Добавлено в корзину: ${name}`);
+      updateCart();
+    }
+
+    function updateCart() {
+      const box = document.getElementById("cart-box");
+      const list = document.getElementById("cart-items");
+      list.innerHTML = "";
+      if (cart.length > 0) {
+        box.style.display = "block";
+        cart.forEach(item => {
+          const div = document.createElement("div");
+          div.className = "cart-item";
+          div.innerText = `${item.name} × ${item.qty} = ${item.qty * item.price}₽`;
+          list.appendChild(div);
+        });
+      } else {
+        box.style.display = "none";
+      }
+    }
+
+    function submitCart() {
+      Telegram.WebApp.sendData(JSON.stringify(cart));
+      Telegram.WebApp.close();
     }
 
     function createCarousel(title, items) {
@@ -96,17 +143,17 @@
         img.onerror = () => img.src = "https://via.placeholder.com/150";
         div.appendChild(img);
 
-        const titleEl = document.createElement("h3");
-        titleEl.innerText = item.Название;
-        div.appendChild(titleEl);
+        const title = document.createElement("h3");
+        title.innerText = item.Название;
+        div.appendChild(title);
 
         const price = document.createElement("p");
-        price.innerText = item.Цена ? `Цена: ${item.Цена}₽` : "Бесплатно";
+        price.innerText = `Цена: ${item.Цена}₽`;
         div.appendChild(price);
 
         const btn = document.createElement("button");
         btn.innerText = "Добавить";
-        btn.onclick = () => addToCart(item.Название, item.Цена || 0, item.Тип);
+        btn.onclick = () => addToCart(item.Название, item.Цена, item.Тип);
         div.appendChild(btn);
 
         carousel.appendChild(div);
@@ -119,30 +166,18 @@
     fetch(sheetUrl)
       .then(res => res.json())
       .then(data => {
-        console.log("📦 Данные получены:", data);
         const categories = {
           "Мангал меню": [],
           "Казан меню": [],
           "Банкетное меню": []
         };
-
         data.forEach(item => {
-          const type = item.Тип?.toLowerCase();
-          if (type === "граммы") categories["Мангал меню"].push(item);
-          else if (type === "казан") categories["Казан меню"].push(item);
-          else if (type === "меню" || type === "праздник") categories["Банкетное меню"].push(item);
+          const cat = item.Категория?.trim();
+          if (categories[cat]) categories[cat].push(item);
         });
-
-        const menuBox = document.getElementById("menu");
-        menuBox.innerHTML = ""; // Очистим "Загрузка..."
-
         Object.entries(categories).forEach(([title, items]) => {
           if (items.length > 0) createCarousel(title, items);
         });
-      })
-      .catch(err => {
-        console.error("❌ Ошибка загрузки:", err);
-        document.getElementById("menu").innerText = "❌ Ошибка загрузки данных";
       });
   </script>
 </body>
