@@ -9,8 +9,8 @@
     body {
       margin: 0;
       font-family: sans-serif;
-      background: #f5f5f5 url('Group%201171274963.png') repeat;
-      background-size: 150px;
+      background: url('Group%201171274963.png') repeat;
+      background-size: 80px;
       padding: 1rem;
     }
     h2 {
@@ -54,27 +54,29 @@
       border: none;
       border-radius: 6px;
     }
-    .cart-box {
+    #cart {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
       background: #fff;
       padding: 1rem;
-      border-radius: 12px;
-      box-shadow: 0 -1px 5px rgba(0,0,0,0.1);
-      margin-top: 2rem;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
     }
-    .cart-box h3 {
-      margin-top: 0;
-    }
-    .cart-item {
+    #cartItems {
       font-size: 14px;
-      margin: 0.25rem 0;
+      margin-bottom: 0.5rem;
     }
-    .submit-btn {
-      margin-top: 1rem;
+    #sendBtn {
       width: 100%;
-      font-size: 18px;
-      padding: 0.75rem;
-      background: #4caf50;
-      color: #fff;
+      font-size: 16px;
+      padding: 1rem;
+      background: #007bff;
+      color: white;
       border: none;
       border-radius: 8px;
     }
@@ -83,10 +85,10 @@
 <body>
   <h1>Меню</h1>
   <div id="menu"></div>
-  <div class="cart-box" id="cart-box" style="display:none">
-    <h3>Корзина</h3>
-    <div id="cart-items"></div>
-    <button class="submit-btn" onclick="submitCart()">📤 Отправить заказ</button>
+
+  <div id="cart">
+    <div id="cartItems">Корзина пуста</div>
+    <button id="sendBtn">📤 Отправить заказ</button>
   </div>
 
   <script>
@@ -95,32 +97,24 @@
     const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
     const cart = [];
 
-    function addToCart(name, price, type) {
-      const qty = type.toLowerCase() === 'граммы' ? 300 : 1;
-      cart.push({ name, qty, price });
-      updateCart();
-    }
-
-    function updateCart() {
-      const box = document.getElementById("cart-box");
-      const list = document.getElementById("cart-items");
-      list.innerHTML = "";
-      if (cart.length > 0) {
-        box.style.display = "block";
-        cart.forEach(item => {
-          const div = document.createElement("div");
-          div.className = "cart-item";
-          div.innerText = `${item.name} × ${item.qty} = ${item.qty * item.price}₽`;
-          list.appendChild(div);
-        });
+    function updateCartDisplay() {
+      const cartItems = document.getElementById("cartItems");
+      if (cart.length === 0) {
+        cartItems.innerText = "Корзина пуста";
       } else {
-        box.style.display = "none";
+        cartItems.innerText = cart.map(i => `${i.name} × ${i.qty}`).join("; ");
       }
     }
 
-    function submitCart() {
-      Telegram.WebApp.sendData(JSON.stringify(cart));
-      Telegram.WebApp.close();
+    function addToCart(name, price, type) {
+      const qty = type.toLowerCase() === 'граммы' ? 300 : 1;
+      const existing = cart.find(i => i.name === name);
+      if (existing) {
+        existing.qty += qty;
+      } else {
+        cart.push({ name, qty, price });
+      }
+      updateCartDisplay();
     }
 
     function createCarousel(title, items) {
@@ -153,7 +147,7 @@
 
         const btn = document.createElement("button");
         btn.innerText = "Добавить";
-        btn.onclick = () => addToCart(item.Название, item.Цена, item.Тип);
+        btn.onclick = () => addToCart(item.Название, parseInt(item.Цена), item.Тип);
         div.appendChild(btn);
 
         carousel.appendChild(div);
@@ -162,6 +156,11 @@
       section.appendChild(carousel);
       menu.appendChild(section);
     }
+
+    document.getElementById("sendBtn").onclick = () => {
+      Telegram.WebApp.sendData(JSON.stringify(cart));
+      Telegram.WebApp.close();
+    };
 
     fetch(sheetUrl)
       .then(res => res.json())
