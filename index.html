@@ -9,77 +9,49 @@
     body {
       margin: 0;
       font-family: sans-serif;
-      background: url('Group%201171274963.png') no-repeat center center fixed;
-      background-size: 100% 100%;
+      background: #f5f5f5;
       padding: 1rem;
     }
     h1 {
-      font-size: 24px;
-      color: #000;
-    }
-    h2 {
-      margin-top: 2rem;
-      margin-bottom: 0.5rem;
-      color: #000;
+      text-align: center;
     }
     .carousel {
       display: flex;
       overflow-x: auto;
-      gap: 0.75rem;
-      padding-bottom: 0.5rem;
+      gap: 1rem;
+      padding-bottom: 1rem;
     }
-    .product {
+    .card {
       flex: 0 0 auto;
       background: #fff;
-      border-radius: 12px;
-      padding: 0.75rem;
-      width: 180px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+      width: 220px;
+      padding: 1rem;
     }
-    .product img {
+    .card img {
       width: 100%;
-      height: 120px;
+      height: 140px;
       object-fit: cover;
-      border-radius: 8px;
-    }
-    .product h3 {
-      font-size: 16px;
-      margin: 0.5rem 0 0.25rem;
-    }
-    .product p {
-      margin: 0 0 0.5rem;
-      font-size: 14px;
-    }
-    .product button {
-      width: 100%;
-      padding: 0.5rem;
-      font-size: 15px;
-      background: #2196f3;
-      color: #fff;
-      border: none;
       border-radius: 6px;
     }
-    #cart {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: #fff;
-      padding: 1rem;
-      box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
-    }
-    #cartItems {
-      font-size: 14px;
-      margin-bottom: 0.5rem;
-    }
-    #sendBtn {
-      width: 100%;
+    .card h3 {
       font-size: 18px;
-      padding: 1rem;
+      margin: 0.5rem 0;
+    }
+    .card p {
+      font-size: 14px;
+      margin: 0.25rem 0;
+    }
+    .card button {
+      margin-top: 0.5rem;
+      width: 100%;
+      padding: 0.5rem;
       background: #007bff;
-      color: white;
+      color: #fff;
       border: none;
-      border-radius: 8px;
+      border-radius: 5px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -87,99 +59,66 @@
   <h1>Меню</h1>
   <div id="menu"></div>
 
-  <div id="cart">
-    <div id="cartItems">Корзина пуста</div>
-    <button id="sendBtn">📤 Отправить заказ</button>
-  </div>
-
   <script>
     Telegram.WebApp.ready();
 
-    const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
-    const cart = [];
-
-    function updateCartDisplay() {
-      const cartItems = document.getElementById("cartItems");
-      if (cart.length === 0) {
-        cartItems.innerText = "Корзина пуста";
-      } else {
-        cartItems.innerText = cart.map(i => `${i.name} × ${i.qty}`).join("; ");
-      }
-    }
-
-    function addToCart(name, price, type) {
-      const qty = type.toLowerCase() === 'граммы' ? 300 : 1;
-      const existing = cart.find(i => i.name === name);
-      if (existing) {
-        existing.qty += qty;
-      } else {
-        cart.push({ name, qty, price });
-      }
-      updateCartDisplay();
-    }
-
-    function createCarousel(title, items) {
-      const menu = document.getElementById("menu");
-      const section = document.createElement("div");
-
-      const heading = document.createElement("h2");
-      heading.innerText = title;
-      section.appendChild(heading);
-
-      const carousel = document.createElement("div");
-      carousel.className = "carousel";
-
-      items.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "product";
-
-        const img = document.createElement("img");
-        img.src = item.Фото?.trim() || "https://via.placeholder.com/150";
-        img.onerror = () => img.src = "https://via.placeholder.com/150";
-        div.appendChild(img);
-
-        const title = document.createElement("h3");
-        title.innerText = item.Название;
-        div.appendChild(title);
-
-        const price = document.createElement("p");
-        price.innerText = `Цена: ${item.Цена}₽`;
-        div.appendChild(price);
-
-        const btn = document.createElement("button");
-        btn.innerText = "Добавить";
-        btn.onclick = () => addToCart(item.Название, parseInt(item.Цена), item.Тип);
-        div.appendChild(btn);
-
-        carousel.appendChild(div);
-      });
-
-      section.appendChild(carousel);
-      menu.appendChild(section);
-    }
-
-    document.getElementById("sendBtn").onclick = () => {
-      Telegram.WebApp.sendData(JSON.stringify(cart));
-      Telegram.WebApp.close();
-    };
+    const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu"; // замени на свою таблицу
 
     fetch(sheetUrl)
       .then(res => res.json())
       .then(data => {
-        const categories = {
-          "Мангал меню": [],
-          "Казан меню": [],
-          "Банкетное меню": []
-        };
+        const grouped = {};
+
         data.forEach(item => {
-          const type = item.Тип?.toLowerCase();
-          if (type === "граммы") categories["Мангал меню"].push(item);
-          else if (type === "казан") categories["Казан меню"].push(item);
-          else if (type === "меню" || type === "праздник") categories["Банкетное меню"].push(item);
+          const type = item.Тип?.trim() || "Прочее";
+          if (!grouped[type]) grouped[type] = [];
+          grouped[type].push(item);
         });
-        Object.entries(categories).forEach(([title, items]) => {
-          if (items.length > 0) createCarousel(title, items);
-        });
+
+        const container = document.getElementById("menu");
+
+        for (const [category, items] of Object.entries(grouped)) {
+          const title = document.createElement("h2");
+          title.innerText = category;
+          container.appendChild(title);
+
+          const row = document.createElement("div");
+          row.className = "carousel";
+
+          items.forEach(item => {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            const img = document.createElement("img");
+            img.src = item.Фото?.trim() || "https://via.placeholder.com/300x200?text=Нет+фото";
+            card.appendChild(img);
+
+            const name = document.createElement("h3");
+            name.innerText = item.Название;
+            card.appendChild(name);
+
+            const desc = document.createElement("p");
+            desc.innerText = item.Описание;
+            card.appendChild(desc);
+
+            const price = document.createElement("p");
+            price.innerText = `Цена: ${item.Цена}₽`;
+            card.appendChild(price);
+
+            const btn = document.createElement("button");
+            btn.innerText = "Добавить";
+            btn.onclick = () => alert(`Добавлено: ${item.Название}`);
+            card.appendChild(btn);
+
+            row.appendChild(card);
+          });
+
+          container.appendChild(row);
+        }
+      })
+      .catch(e => {
+        document.getElementById("menu").innerText = "Ошибка загрузки данных.";
+        console.error(e);
       });
   </script>
 </body>
