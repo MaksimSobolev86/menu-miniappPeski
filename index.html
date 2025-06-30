@@ -85,123 +85,111 @@
     <div id="cart-items">Корзина пуста</div>
     <button id="submit" onclick="submitCart()">Подтвердить заказ</button>
   </div>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+  const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
+  const cart = [];
 
-  <script>
-    const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
-    const cart = [];
+  window.addEventListener("DOMContentLoaded", () => {
+    const tg = window.Telegram.WebApp;
+    console.log("🧩 tg объект:", tg);
+    console.log("🧩 sendData доступен?", typeof tg.sendData);
 
-    function addToCart(name, price, type) {
-      let qty = 1;
-      if (type.toLowerCase() === "граммы") {
-        qty = 300;
-      }
-      cart.push({ name, qty, price });
-      renderCart();
-    }
-
-    function renderCart() {
-      const cartBox = document.getElementById('cart-items');
-      if (cart.length === 0) {
-        cartBox.innerText = 'Корзина пуста';
-        return;
-      }
-      cartBox.innerHTML = cart.map(item =>
-        `• ${item.name} × ${item.qty} — ${item.qty * item.price}₽`
-      ).join('<br>');
-    }
-
-    function submitCart() {
-      const tg = window.Telegram.WebApp;
-
-      const items = cart.map(item => ({
-        name: item.name,
-        qty: item.qty,
-        price: item.price
-      }));
-      const total = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
-
-      alert("📤 Попытка отправки");
-
-      console.log("✅ tg объект:", tg);
-      console.log("✅ tg.sendData:", typeof tg.sendData);
-
-      if (tg && typeof tg.sendData === "function") {
-        tg.sendData(JSON.stringify({ items, total }));
-        setTimeout(() => tg.close(), 500);
-      } else {
-        alert("❌ tg.sendData недоступен (возможно не Telegram)");
-      }
-    }
-
-    function renderCategory(titleText, items) {
-      const container = document.getElementById('products');
-      const section = document.createElement('div');
-      section.className = 'category-section';
-
-      const title = document.createElement('div');
-      title.className = 'category-title';
-      title.innerText = titleText;
-
-      const carousel = document.createElement('div');
-      carousel.className = 'carousel';
-
-      items.forEach(item => {
-        const el = document.createElement('div');
-        el.className = 'product';
-        let displayPrice = item["Тип"]?.toLowerCase() === "граммы"
-          ? `${item.Цена}₽ / 100г`
-          : `${item.Цена}₽`;
-
-        const photoUrl = item.Фото && item.Фото.trim() !== ''
-          ? item.Фото
-          : 'https://via.placeholder.com/300x200?text=Нет+фото';
-
-        el.innerHTML = `
-          <img src="${photoUrl}" alt="${item.Название}" />
-          <h3>${item.Название}</h3>
-          <p>Цена: ${displayPrice}</p>
-          <button onclick="addToCart('${item.Название}', ${item.Цена}, '${item.Тип}')">Добавить</button>
-        `;
-        carousel.appendChild(el);
-      });
-
-      section.appendChild(title);
-      section.appendChild(carousel);
-      container.appendChild(section);
+    if (tg) {
+      tg.ready();
+      tg.expand();
     }
 
     fetch(sheetUrl)
       .then(res => res.json())
       .then(data => {
-        console.log("📦 Загружены данные:", data);
-        console.log("💡 Всего строк в меню:", data.length);
-
         const mangalItems = data.filter(row => row["Тип"]?.toLowerCase() === "граммы");
         const kazanItems = data.filter(row => row["Тип"]?.toLowerCase() === "казан");
-
-        if (mangalItems.length > 0) {
-          renderCategory("Мангал меню", mangalItems);
-        }
-        if (kazanItems.length > 0) {
-          renderCategory("Казан меню", kazanItems);
-        }
-
         const banquetItems = data.filter(row => row["Тип"]?.toLowerCase() === "меню");
+
+        if (mangalItems.length > 0) renderCategory("Мангал меню", mangalItems);
+        if (kazanItems.length > 0) renderCategory("Казан меню", kazanItems);
         if (banquetItems.length > 0) {
           const container = document.getElementById('products');
-          const banquetTitle = document.createElement('div');
-          banquetTitle.className = 'category-title';
-          banquetTitle.innerText = 'Банкетное меню';
-          container.appendChild(banquetTitle);
+          const title = document.createElement('div');
+          title.className = 'category-title';
+          title.innerText = 'Банкетное меню';
+          container.appendChild(title);
         }
       })
-      .catch(error => {
-        console.error("❌ Ошибка при загрузке меню:", error);
-      });
+      .catch(err => console.error("❌ Ошибка загрузки меню:", err));
+  });
 
-    window.addEventListener("DOMContentLoaded", () => {
-      Telegram.WebApp.ready();
+  function addToCart(name, price, type) {
+    const qty = type.toLowerCase() === "граммы" ? 300 : 1;
+    cart.push({ name, qty, price });
+    renderCart();
+  }
+
+  function renderCart() {
+    const box = document.getElementById('cart-items');
+    if (cart.length === 0) {
+      box.innerText = 'Корзина пуста';
+      return;
+    }
+    box.innerHTML = cart.map(item =>
+      `• ${item.name} × ${item.qty} — ${item.qty * item.price}₽`
+    ).join('<br>');
+  }
+
+  function submitCart() {
+    const tg = window.Telegram.WebApp;
+    const items = cart.map(i => ({ name: i.name, qty: i.qty, price: i.price }));
+    const total = cart.reduce((sum, i) => sum + i.qty * i.price, 0);
+
+    console.log("📤 Пытаемся отправить:", { items, total });
+
+    if (tg && typeof tg.sendData === "function") {
+      tg.sendData(JSON.stringify({ items, total }));
+      setTimeout(() => tg.close(), 500);
+    } else {
+      alert("❌ Ошибка: sendData не доступен");
+    }
+  }
+
+  function renderCategory(titleText, items) {
+    const container = document.getElementById('products');
+    const section = document.createElement('div');
+    section.className = 'category-section';
+
+    const title = document.createElement('div');
+    title.className = 'category-title';
+    title.innerText = titleText;
+
+    const carousel = document.createElement('div');
+    carousel.className = 'carousel';
+
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'product';
+
+      const displayPrice = item["Тип"]?.toLowerCase() === "граммы"
+        ? `${item.Цена}₽ / 100г`
+        : `${item.Цена}₽`;
+
+      const photoUrl = item.Фото?.trim() !== ''
+        ? item.Фото
+        : 'https://via.placeholder.com/300x200?text=Нет+фото';
+
+      el.innerHTML = `
+        <img src="${photoUrl}" alt="${item.Название}" />
+        <h3>${item.Название}</h3>
+        <p>Цена: ${displayPrice}</p>
+        <button onclick="addToCart('${item.Название}', ${item.Цена}, '${item.Тип}')">Добавить</button>
+      `;
+      carousel.appendChild(el);
     });
-  </script>
+
+    section.appendChild(title);
+    section.appendChild(carousel);
+    container.appendChild(section);
+  }
+</script>
+
 </body>
 </html>
