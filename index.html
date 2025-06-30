@@ -9,14 +9,10 @@
     body {
       margin: 0;
       font-family: sans-serif;
-      background: url('Group%201171274963.png') repeat;
-      background-size: 100px auto;
+      background: #f5f5f5 url('Group 1171274963.png') repeat;
       padding: 1rem;
     }
-    h2 {
-      margin-top: 2rem;
-      margin-bottom: 0.5rem;
-    }
+    h2 { margin-top: 2rem; margin-bottom: 0.5rem; }
     .carousel {
       display: flex;
       overflow-x: auto;
@@ -37,22 +33,11 @@
       object-fit: cover;
       border-radius: 8px;
     }
-    .product h3 {
-      font-size: 16px;
-      margin: 0.5rem 0 0.25rem;
-    }
-    .product p {
-      margin: 0 0 0.5rem;
-      font-size: 14px;
-    }
+    .product h3 { font-size: 16px; margin: 0.5rem 0 0.25rem; }
+    .product p { margin: 0 0 0.5rem; font-size: 14px; }
     .product button {
-      width: 100%;
-      padding: 0.5rem;
-      font-size: 15px;
-      background: #2196f3;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
+      width: 100%; padding: 0.5rem; font-size: 15px;
+      background: #2196f3; color: #fff; border: none; border-radius: 6px;
     }
   </style>
 </head>
@@ -62,7 +47,6 @@
 
   <script>
     Telegram.WebApp.ready();
-
     const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
     const cart = [];
 
@@ -74,7 +58,6 @@
     function createCarousel(title, items) {
       const menu = document.getElementById("menu");
       const section = document.createElement("div");
-
       const heading = document.createElement("h2");
       heading.innerText = title;
       section.appendChild(heading);
@@ -91,17 +74,17 @@
         img.onerror = () => img.src = "https://via.placeholder.com/150";
         div.appendChild(img);
 
-        const title = document.createElement("h3");
-        title.innerText = item.Название;
-        div.appendChild(title);
+        const titleEl = document.createElement("h3");
+        titleEl.innerText = item.Название;
+        div.appendChild(titleEl);
 
         const price = document.createElement("p");
-        price.innerText = `Цена: ${item.Цена}₽`;
+        price.innerText = item.Цена ? `Цена: ${item.Цена}₽` : "Бесплатно";
         div.appendChild(price);
 
         const btn = document.createElement("button");
         btn.innerText = "Добавить";
-        btn.onclick = () => addToCart(item.Название, item.Цена, item.Тип);
+        btn.onclick = () => addToCart(item.Название, item.Цена || 0, item.Тип);
         div.appendChild(btn);
 
         carousel.appendChild(div);
@@ -119,10 +102,14 @@
           "Казан меню": [],
           "Банкетное меню": []
         };
+
         data.forEach(item => {
-          const cat = item.Категория?.trim();
-          if (categories[cat]) categories[cat].push(item);
+          const type = item.Тип?.toLowerCase();
+          if (type === "граммы") categories["Мангал меню"].push(item);
+          else if (type === "казан") categories["Казан меню"].push(item);
+          else if (type === "меню" || type === "праздник") categories["Банкетное меню"].push(item);
         });
+
         Object.entries(categories).forEach(([title, items]) => {
           if (items.length > 0) createCarousel(title, items);
         });
