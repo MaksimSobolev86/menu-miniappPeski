@@ -1,195 +1,28 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Меню</title>
+  <meta charset="UTF-8">
+  <title>Mini App Test</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      background-color: #f5f5f5;
-      margin: 0;
-      padding: 1rem;
-    }
-    h2 {
-      text-align: center;
-    }
-    .category-section {
-      margin-bottom: 2rem;
-    }
-    .category-title {
-      font-size: 1.2rem;
-      margin: 1rem 0 0.5rem 0.5rem;
-    }
-    .carousel {
-      display: flex;
-      overflow-x: auto;
-      gap: 1rem;
-      padding-bottom: 1rem;
-      scroll-snap-type: x mandatory;
-    }
-    .product {
-      flex: 0 0 70%;
-      background: #fff;
-      border-radius: 10px;
-      padding: 1rem;
-      box-shadow: 0 0 5px rgba(0,0,0,0.2);
-      scroll-snap-align: start;
-    }
-    .product img {
-      width: 100%;
-      height: 200px;
-      border-radius: 10px;
-      object-fit: cover;
-    }
-    .product h3 {
-      margin: 0.5rem 0;
-    }
-    .product button {
-      background: #29a329;
-      color: white;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #cart {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #fff;
-      padding: 1rem;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
-    }
-    #cart-items {
-      margin-bottom: 1rem;
-    }
-    #submit {
-      background: #0088cc;
-      color: white;
-      border: none;
-      padding: 1rem;
-      width: 100%;
-      border-radius: 8px;
-      font-size: 1rem;
-    }
-  </style>
 </head>
 <body>
   <h2>Меню</h2>
-  <div id="products"></div>
+  <button onclick="sendData()" style="padding: 15px; font-size: 20px;">📤 Отправить заказ</button>
 
-  <div id="cart">
-    <div id="cart-items">Корзина пуста</div>
-    <button id="submit" onclick="submitCart()">Подтвердить заказ</button>
-  </div>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>
-  const sheetUrl = "https://opensheet.vercel.app/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
-  const cart = [];
+  <script>
+    Telegram.WebApp.ready()
 
-  window.addEventListener("DOMContentLoaded", () => {
-    const tg = window.Telegram.WebApp;
-    console.log("🧩 tg объект:", tg);
-    console.log("🧩 sendData доступен?", typeof tg.sendData);
-
-    if (tg) {
-      tg.ready();
-      tg.expand();
+    function sendData() {
+      const data = {
+        items: [
+          { name: "Шашлык", qty: 2, price: 300 },
+          { name: "Плов", qty: 1, price: 350 }
+        ],
+        total: 950
+      };
+      Telegram.WebApp.sendData(JSON.stringify(data));
+      Telegram.WebApp.close();
     }
-
-    fetch(sheetUrl)
-      .then(res => res.json())
-      .then(data => {
-        const mangalItems = data.filter(row => row["Тип"]?.toLowerCase() === "граммы");
-        const kazanItems = data.filter(row => row["Тип"]?.toLowerCase() === "казан");
-        const banquetItems = data.filter(row => row["Тип"]?.toLowerCase() === "меню");
-
-        if (mangalItems.length > 0) renderCategory("Мангал меню", mangalItems);
-        if (kazanItems.length > 0) renderCategory("Казан меню", kazanItems);
-        if (banquetItems.length > 0) {
-          const container = document.getElementById('products');
-          const title = document.createElement('div');
-          title.className = 'category-title';
-          title.innerText = 'Банкетное меню';
-          container.appendChild(title);
-        }
-      })
-      .catch(err => console.error("❌ Ошибка загрузки меню:", err));
-  });
-
-  function addToCart(name, price, type) {
-    const qty = type.toLowerCase() === "граммы" ? 300 : 1;
-    cart.push({ name, qty, price });
-    renderCart();
-  }
-
-  function renderCart() {
-    const box = document.getElementById('cart-items');
-    if (cart.length === 0) {
-      box.innerText = 'Корзина пуста';
-      return;
-    }
-    box.innerHTML = cart.map(item =>
-      `• ${item.name} × ${item.qty} — ${item.qty * item.price}₽`
-    ).join('<br>');
-  }
-
-  function submitCart() {
-    const tg = window.Telegram.WebApp;
-    const items = cart.map(i => ({ name: i.name, qty: i.qty, price: i.price }));
-    const total = cart.reduce((sum, i) => sum + i.qty * i.price, 0);
-
-    console.log("📤 Пытаемся отправить:", { items, total });
-
-    if (tg && typeof tg.sendData === "function") {
-      tg.sendData(JSON.stringify({ items, total }));
-      setTimeout(() => tg.close(), 500);
-    } else {
-      alert("❌ Ошибка: sendData не доступен");
-    }
-  }
-
-  function renderCategory(titleText, items) {
-    const container = document.getElementById('products');
-    const section = document.createElement('div');
-    section.className = 'category-section';
-
-    const title = document.createElement('div');
-    title.className = 'category-title';
-    title.innerText = titleText;
-
-    const carousel = document.createElement('div');
-    carousel.className = 'carousel';
-
-    items.forEach(item => {
-      const el = document.createElement('div');
-      el.className = 'product';
-
-      const displayPrice = item["Тип"]?.toLowerCase() === "граммы"
-        ? `${item.Цена}₽ / 100г`
-        : `${item.Цена}₽`;
-
-      const photoUrl = item.Фото?.trim() !== ''
-        ? item.Фото
-        : 'https://via.placeholder.com/300x200?text=Нет+фото';
-
-      el.innerHTML = `
-        <img src="${photoUrl}" alt="${item.Название}" />
-        <h3>${item.Название}</h3>
-        <p>Цена: ${displayPrice}</p>
-        <button onclick="addToCart('${item.Название}', ${item.Цена}, '${item.Тип}')">Добавить</button>
-      `;
-      carousel.appendChild(el);
-    });
-
-    section.appendChild(title);
-    section.appendChild(carousel);
-    container.appendChild(section);
-  }
-</script>
-
+  </script>
 </body>
 </html>
