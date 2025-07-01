@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
-        background: url('background.png') no-repeat center center fixed;
+        background: url('bakground.png') no-repeat center center fixed;
         background-size: cover;
       }
       .swipe-remove {
@@ -154,7 +154,8 @@
       confirm.onclick = () => {
         if (window.Telegram?.WebApp?.sendData) {
           const items = cart.map(c => ({ name: c.name, qty: c.qty, price: c.price }));
-          Telegram.WebApp.sendData(JSON.stringify({ items }));
+          const total = cart.reduce((sum, c) => sum + c.qty * c.price, 0);
+          Telegram.WebApp.sendData(JSON.stringify({ items, total }));
           Telegram.WebApp.close();
         }
       };
