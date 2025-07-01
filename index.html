@@ -11,6 +11,13 @@
         background: url('background.png') no-repeat center center fixed;
         background-size: cover;
       }
+      .swipe-remove {
+        transition: transform 0.2s ease;
+      }
+      .swipe-remove.swiping {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
     </style>
   </head>
   <body class="pb-36 text-sm font-sans">
@@ -106,12 +113,28 @@
         }
         cartBox.classList.remove("hidden");
         confirm.classList.remove("hidden");
-        cartItems.innerHTML = cart.map((c, i) =>
-          `<div class="flex justify-between items-center mb-1">
-            <span>• ${c.name} × ${c.qty} — ${c.qty * c.price} ₽</span>
-            <button onclick="removeFromCart(${i})" class="text-red-500 text-xs ml-2">✕</button>
-          </div>`
-        ).join("");
+        cartItems.innerHTML = "";
+        cart.forEach((c, i) => {
+          const itemDiv = document.createElement("div");
+          itemDiv.className = "flex justify-between items-center mb-1 swipe-remove";
+          itemDiv.innerHTML = `<span>• ${c.name} × ${c.qty} — ${c.qty * c.price} ₽</span>`;
+
+          let startX = 0;
+          itemDiv.addEventListener("touchstart", (e) => {
+            startX = e.touches[0].clientX;
+          });
+          itemDiv.addEventListener("touchend", (e) => {
+            const endX = e.changedTouches[0].clientX;
+            if (startX - endX > 50) {
+              itemDiv.classList.add("swiping");
+              setTimeout(() => {
+                removeFromCart(i);
+              }, 200);
+            }
+          });
+
+          cartItems.appendChild(itemDiv);
+        });
       }
 
       function removeFromCart(index) {
@@ -130,8 +153,9 @@
 
       confirm.onclick = () => {
         if (window.Telegram?.WebApp?.sendData) {
-          window.Telegram.WebApp.sendData(JSON.stringify(cart));
-          window.Telegram.WebApp.close();
+          const items = cart.map(c => ({ name: c.name, qty: c.qty, price: c.price }));
+          Telegram.WebApp.sendData(JSON.stringify({ items }));
+          Telegram.WebApp.close();
         }
       };
     </script>
