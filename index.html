@@ -1,137 +1,139 @@
-import { useEffect, useState } from "react";
-
-const categories = [
-  { id: "казан", label: "Казан" },
-  { id: "мангал", label: "Мангал" },
-  { id: "банкет", label: "Банкетное меню" }
-];
-
-const MenuApp = () => {
-  const [category, setCategory] = useState("казан");
-  const [cart, setCart] = useState([]);
-  const [menuItems, setMenuItems] = useState([]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.Telegram?.WebApp?.ready) {
-      window.Telegram.WebApp.ready();
-    }
-
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          "https://opensheet.elk.sh/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu"
-        );
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setMenuItems(data);
-        } else {
-          console.error("Полученные данные не являются массивом:", data);
-          setMenuItems([]);
-        }
-      } catch (err) {
-        console.error("Ошибка загрузки меню:", err);
-        setMenuItems([]);
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Меню</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        background: url('background.png') no-repeat center center fixed;
+        background-size: cover;
       }
-    };
+    </style>
+  </head>
+  <body class="pb-36 text-sm font-sans">
+    <div class="text-center text-xl font-bold p-4 border-b bg-white bg-opacity-90">Меню</div>
+    <div id="tabs" class="flex justify-around mt-2 border-b text-gray-700 bg-white bg-opacity-90"></div>
+    <div id="cards" class="space-y-4 p-4"></div>
 
-    fetchData();
-  }, []);
-
-  const addToCart = (item) => {
-    const qty = item["Тип"]?.toLowerCase() === "граммы" ? 300 : 1;
-    setCart((prev) => [...prev, { name: item["Название"], qty, price: Number(item["Цена"]), type: item["Тип"] }]);
-  };
-
-  const sendOrder = () => {
-    const items = cart.map((item) => ({ name: item.name, qty: item.qty, price: item.price }));
-    const total = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
-    if (typeof window !== "undefined" && window.Telegram?.WebApp?.sendData) {
-      window.Telegram.WebApp.sendData(JSON.stringify({ items, total }));
-      window.Telegram.WebApp.close();
-    }
-  };
-
-  const filteredItems = Array.isArray(menuItems)
-    ? menuItems.filter((item) => {
-        const t = item["Тип"]?.toLowerCase();
-        if (category === "казан") return t === "казан";
-        if (category === "мангал") return t === "граммы";
-        return t === "меню";
-      })
-    : [];
-
-  const normalizeImage = (url) => {
-    if (!url || typeof url !== "string") return "https://via.placeholder.com/300x200?text=Нет+фото";
-    if (url.includes("drive.google.com")) {
-      const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (match) {
-        return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-      }
-    }
-    return url.trim();
-  };
-
-  return (
-    <div className="p-4 pb-36">
-      <div className="flex justify-around border-b pb-2">
-        {categories.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setCategory(c.id)}
-            className={`pb-1 font-medium ${
-              category === c.id ? "border-b-2 border-black" : "text-gray-400"
-            }`}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-4 mt-4">
-        {filteredItems.map((item, i) => (
-          <div key={i} className="flex items-center bg-white shadow rounded-xl p-3">
-            <img
-              src={normalizeImage(item["Фото"])}
-              alt={item["Название"]}
-              className="w-20 h-20 rounded-xl object-cover mr-4"
-            />
-            <div className="flex-1">
-              <div className="font-semibold text-base mb-1">{item["Название"]}</div>
-              <p className="text-sm text-gray-600 mb-1">{item["Описание"]}</p>
-              <div className="text-sm text-gray-800 mb-2">Цена: {item["Цена"]} ₽</div>
-              <button
-                onClick={() => addToCart(item)}
-                className="bg-gray-100 w-full py-1 rounded-md text-center"
-              >
-                Добавить
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Корзина */}
-      <div className="fixed bottom-16 left-0 right-0 bg-white border-t px-4 py-3 max-h-32 overflow-y-auto">
-        <div className="font-medium mb-2">🧺 Корзина:</div>
-        {cart.length === 0 ? (
-          <div className="text-sm text-gray-500">Корзина пуста</div>
-        ) : (
-          cart.map((item, i) => (
-            <div key={i} className="text-sm">
-              • {item.name} × {item.qty} — {item.qty * item.price} ₽
-            </div>
-          ))
-        )}
-      </div>
-
-      <button
-        onClick={sendOrder}
-        className="fixed bottom-0 left-0 right-0 bg-green-600 text-white text-center py-4 text-lg"
-      >
-        📤 Подтвердить заказ
-      </button>
+    <div id="cart" class="fixed bottom-16 left-0 right-0 bg-white bg-opacity-90 border-t px-4 py-3 max-h-40 overflow-y-auto hidden">
+      <div class="font-semibold mb-1">Корзина:</div>
+      <div id="cart-items" class="text-sm text-gray-700"></div>
     </div>
-  );
-};
+    <button id="confirm" class="fixed bottom-0 left-0 right-0 bg-green-600 text-white py-4 text-lg hidden">Подтвердить заказ</button>
 
-export default MenuApp;
+    <script>
+      window.Telegram?.WebApp?.ready?.();
+      let cart = [];
+      const categories = {
+        "казан": "Казан",
+        "граммы": "Мангал",
+        "меню": "Банкетное меню"
+      };
+
+      const tabs = document.getElementById("tabs");
+      const cards = document.getElementById("cards");
+      const cartBox = document.getElementById("cart");
+      const cartItems = document.getElementById("cart-items");
+      const confirm = document.getElementById("confirm");
+
+      const sheetUrl = "https://opensheet.elk.sh/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
+
+      fetch(sheetUrl)
+        .then((res) => res.json())
+        .then((data) => {
+          const grouped = {};
+          Object.keys(categories).forEach(k => grouped[k] = []);
+          data.forEach(item => {
+            const type = item.Тип?.trim().toLowerCase();
+            if (grouped[type]) grouped[type].push(item);
+          });
+
+          Object.entries(categories).forEach(([key, label]) => {
+            if (!grouped[key]?.length) return;
+            const btn = document.createElement("button");
+            btn.className = "py-2 px-4";
+            btn.textContent = label;
+            btn.onclick = () => showCategory(key, grouped[key]);
+            tabs.appendChild(btn);
+          });
+
+          showCategory("казан", grouped["казан"]);
+        });
+
+      function showCategory(type, items) {
+        cards.innerHTML = "";
+        items.forEach(item => {
+          const card = document.createElement("div");
+          card.className = "flex items-center bg-white bg-opacity-90 shadow rounded-xl p-3";
+
+          const img = document.createElement("img");
+          img.src = normalizeImage(item.Фото);
+          img.className = "w-20 h-20 rounded-xl object-cover mr-4";
+          card.appendChild(img);
+
+          const content = document.createElement("div");
+          content.className = "flex-1";
+
+          content.innerHTML = `
+            <div class="font-semibold mb-1">${item.Название}</div>
+            <div class="text-gray-500 text-sm mb-1">${item.Описание || ""}</div>
+            <div class="mb-2">Цена: ${item.Цена} ₽</div>
+          `;
+
+          const btn = document.createElement("button");
+          btn.className = "bg-gray-100 w-full py-1 rounded-md text-center";
+          btn.textContent = "Добавить";
+          btn.onclick = () => {
+            const qty = item.Тип === 'граммы' ? 300 : 1;
+            cart.push({ name: item.Название, qty, price: +item.Цена });
+            renderCart();
+          };
+
+          content.appendChild(btn);
+          card.appendChild(content);
+          cards.appendChild(card);
+        });
+      }
+
+      function renderCart() {
+        if (cart.length === 0) {
+          cartBox.classList.add("hidden");
+          confirm.classList.add("hidden");
+          return;
+        }
+        cartBox.classList.remove("hidden");
+        confirm.classList.remove("hidden");
+        cartItems.innerHTML = cart.map((c, i) =>
+          `<div class="flex justify-between items-center mb-1">
+            <span>• ${c.name} × ${c.qty} — ${c.qty * c.price} ₽</span>
+            <button onclick="removeFromCart(${i})" class="text-red-500 text-xs ml-2">✕</button>
+          </div>`
+        ).join("");
+      }
+
+      function removeFromCart(index) {
+        cart.splice(index, 1);
+        renderCart();
+      }
+
+      function normalizeImage(url) {
+        if (!url) return "https://via.placeholder.com/300x200?text=Нет+фото";
+        if (url.includes("drive.google.com")) {
+          const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+        }
+        return url.trim();
+      }
+
+      confirm.onclick = () => {
+        if (window.Telegram?.WebApp?.sendData) {
+          window.Telegram.WebApp.sendData(JSON.stringify(cart));
+          window.Telegram.WebApp.close();
+        }
+      };
+    </script>
+  </body>
+</html>
