@@ -10,9 +10,7 @@
     html, body {
       height: 100%;
       margin: 0;
-      background: url('bakground.png') center top no-repeat;
-      background-size: contain;
-      background-attachment: fixed;
+      overflow-x: hidden;
     }
     .backdrop-blur {
       backdrop-filter: blur(10px);
@@ -21,14 +19,27 @@
     .active-tab {
       font-weight: bold;
       color: black;
+      white-space: nowrap;
     }
   </style>
 </head>
 <body class="pb-[350px] text-sm font-sans">
+  <!-- Статичный фон -->
+  <div style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('bakground.png') center top no-repeat;
+    background-size: cover;
+    z-index: -1;
+  "></div>
+
   <div class="flex items-center justify-start px-6 py-4 border-b bg-white bg-opacity-90">
     <span class="text-xl font-bold">Меню</span>
   </div>
-  <div id="tabs" class="flex justify-around mt-2 border-b text-gray-700 bg-white bg-opacity-90 text-lg px-6"></div>
+  <div id="tabs" class="flex gap-4 mt-2 border-b text-gray-700 bg-white bg-opacity-90 text-lg px-6 overflow-x-auto whitespace-nowrap"></div>
   <div id="cards" class="space-y-4 px-6 py-4 pb-[400px]"></div>
 
   <div id="cart" class="fixed bottom-0 left-0 right-0 z-50 hidden">
