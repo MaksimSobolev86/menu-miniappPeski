@@ -11,8 +11,8 @@
       height: 100%;
       margin: 0;
       background: url('bakground.png') center top no-repeat;
-      background-size: 100% auto;
-      background-attachment: scroll;
+      background-size: contain;
+      background-attachment: fixed;
     }
     .backdrop-blur {
       backdrop-filter: blur(10px);
@@ -29,12 +29,12 @@
     <span class="text-xl font-bold">Меню</span>
   </div>
   <div id="tabs" class="flex justify-around mt-2 border-b text-gray-700 bg-white bg-opacity-90 text-lg px-6"></div>
-  <div id="cards" class="space-y-4 p-6 pb-[400px]"></div>
+  <div id="cards" class="space-y-4 px-6 py-4 pb-[400px]"></div>
 
   <div id="cart" class="fixed bottom-0 left-0 right-0 z-50 hidden">
     <div class="bg-white rounded-t-xl shadow-[0_-8px_20px_rgba(0,0,0,0.2)] p-4 backdrop-blur">
       <div class="font-semibold text-lg mb-2 pl-6">Корзина</div>
-      <div id="cart-items" class="text-sm text-gray-700 space-y-4 pl-12 pr-2 max-h-[150px] overflow-y-auto"></div>
+      <div id="cart-items" class="text-sm text-gray-700 space-y-4 pl-6 pr-2 max-h-[150px] overflow-y-auto"></div>
       <div class="pt-6">
         <button id="confirm" class="bg-green-600 text-white text-lg w-full py-3 rounded-xl shadow-md">Подтвердить заказ</button>
       </div>
