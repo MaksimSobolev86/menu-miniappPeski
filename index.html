@@ -6,13 +6,11 @@
   <title>Меню</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     html, body {
       height: 100%;
       margin: 0;
       overflow-x: hidden;
-      font-family: 'Inter', sans-serif; /* Apply Inter font */
     }
     .backdrop-blur {
       backdrop-filter: blur(10px);
@@ -22,28 +20,32 @@
       font-weight: bold;
       color: black;
       white-space: nowrap;
-      border-bottom: 2px solid #3B82F6; /* Add blue line under active tab */
+    }
+    .placeholder-icon {
+      background-color: #f3f3f3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      border-radius: 0.75rem;
+      margin-right: 1rem;
+    }
+    .placeholder-icon svg {
+      width: 40px;
+      height: 40px;
+      fill: #888;
     }
   </style>
 </head>
-<body class="pb-[200px] text-sm">
-  <!-- Static background -->
-  <div style="
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('background.png') center top no-repeat; /* Corrected typo */
-    background-size: cover;
-    z-index: -1;
-  "></div>
+<body class="pb-[350px] text-sm font-sans">
+  <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('https://raw.githubusercontent.com/MaksimSobolev86/menu-miniappPeski/main/bakground.png') center top no-repeat; background-size: cover; z-index: -1;"></div>
 
   <div class="flex items-center justify-start px-6 py-4 border-b bg-white bg-opacity-90">
     <span class="text-xl font-bold">Меню</span>
   </div>
   <div id="tabs" class="flex gap-4 mt-2 border-b text-gray-700 bg-white bg-opacity-90 text-lg px-6 overflow-x-auto whitespace-nowrap"></div>
-  <div id="cards" class="space-y-4 px-6 py-4 pb-[250px]"></div>
+  <div id="cards" class="space-y-4 px-6 py-4 pb-[400px]"></div>
 
   <div id="cart" class="fixed bottom-0 left-0 right-0 z-50 hidden">
     <div class="bg-white rounded-t-xl shadow-[0_-8px_20px_rgba(0,0,0,0.2)] p-4 backdrop-blur">
@@ -59,7 +61,6 @@
     Telegram.WebApp.ready();
     Telegram.WebApp.expand();
     let cart = [];
-    let activeTab = null;
     const categories = {
       "казан": "Казан",
       "граммы": "Мангал",
@@ -84,9 +85,8 @@
           if (grouped[type]) grouped[type].push(item);
         });
 
-        // Create tab buttons
         Object.entries(categories).forEach(([key, label]) => {
-          if (!grouped[key]?.length) return; // Skip categories without items
+          if (!grouped[key]?.length) return;
           const btn = document.createElement("button");
           btn.className = "py-2 px-4";
           btn.textContent = label;
@@ -98,13 +98,10 @@
           tabs.appendChild(btn);
         });
 
-        // Set default active tab and show its content
         setActiveTab("казан");
         showCategory("казан", grouped["казан"]);
-      })
-      .catch(error => console.error("Error loading data from sheet:", error));
+      });
 
-    // Sets the active tab
     function setActiveTab(key) {
       [...tabs.children].forEach(btn => {
         if (btn.dataset.key === key) {
@@ -113,23 +110,30 @@
           btn.classList.remove("active-tab");
         }
       });
-      activeTab = key; // Update active tab
     }
 
-    // Displays items of the selected category
     function showCategory(type, items) {
-      cards.innerHTML = ""; // Clear current cards
+      cards.innerHTML = "";
       items.forEach(item => {
         const card = document.createElement("div");
         card.className = "flex items-center bg-white bg-opacity-90 shadow rounded-xl p-3";
 
-        const img = document.createElement("img");
-        img.src = normalizeImage(item.Фото);
-        img.className = "w-20 h-20 rounded-xl object-cover mr-4";
-        img.onerror = (e) => { // Handle image loading errors
-          e.target.src = "https://placehold.co/80x80/cccccc/333333?text=No+photo";
-        };
-        card.appendChild(img);
+        const type = item.Тип?.trim().toLowerCase();
+        const isMenu = type === 'меню' || item.Название.toLowerCase().includes('банкет');
+
+        let mediaBlock;
+        if (isMenu) {
+          mediaBlock = document.createElement("div");
+          mediaBlock.className = "placeholder-icon";
+          mediaBlock.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3h-1V2h-2v1H8V2H6v1H5c-1.1 0-2 .9-2 2v15c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 17H5V8h14v12z"/></svg>`;
+        } else {
+          mediaBlock = document.createElement("img");
+          const normalized = normalizeImage(item.Фото);
+          mediaBlock.src = normalized || "https://placehold.co/80x80/eeeeee/aaaaaa?text=";
+          mediaBlock.className = "w-20 h-20 rounded-xl object-cover mr-4";
+        }
+        mediaBlock.classList.add("mr-4");
+        card.appendChild(mediaBlock);
 
         const content = document.createElement("div");
         content.className = "flex-1";
@@ -140,63 +144,56 @@
           <div class="mb-2">Цена: ${item.Цена} ₽</div>
         `;
 
-        // Create "Add" button
-        const addButton = document.createElement("button");
-        addButton.className = "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md transition duration-200 ease-in-out";
-        addButton.textContent = "Добавить";
-        addButton.onclick = () => {
-		  const type = item.Тип?.trim().toLowerCase();
+        const button = document.createElement("button");
+        button.className = isMenu
+          ? "bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md"
+          : "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md";
 
-		  // 👉 Если это банкетное меню — открыть PDF по ссылке
-		  if (type === 'меню' || item.Название.toLowerCase().includes('банкет')) {
-			if (item.Фото) {
-			  window.open(item.Фото, "_blank");
-			} else {
-			  alert("📄 Файл банкетного меню не найден.");
-			}
-			return;
-		  }
+        button.textContent = isMenu ? "Посмотреть" : "Добавить";
 
-		  const isGrams = type === 'граммы';
-		  const qtyToAdd = isGrams ? 1000 : 1;
-		  const existing = cart.find(c => c.name === item.Название);
+        button.onclick = () => {
+          if (isMenu) {
+            const githubUrl = item.Фото?.trim();
+            const rawUrl = githubUrl?.replace("https://github.com/", "https://raw.githubusercontent.com/").replace("/blob/", "/");
+            if (rawUrl) {
+              window.open(rawUrl, "_blank");
+            } else {
+              alert("📄 Файл банкетного меню не найден.");
+            }
+            return;
+          }
 
-		  let pricePerUnit;
-		  if (isGrams) {
-			pricePerUnit = +item.Цена / 100;
-		  } else {
-			pricePerUnit = +item.Цена;
-		  }
+          const isGrams = type === 'граммы';
+          const qtyToAdd = isGrams ? 1000 : 1;
+          const existing = cart.find(c => c.name === item.Название);
 
-		  if (existing) {
-			existing.qty += qtyToAdd;
-		  } else {
-			cart.push({ name: item.Название, qty: qtyToAdd, price: pricePerUnit });
-		  }
-		  renderCart();
-		};
+          let pricePerUnit = isGrams ? +item.Цена / 100 : +item.Цена;
 
-        content.appendChild(addButton); // Add button to content block
+          if (existing) {
+            existing.qty += qtyToAdd;
+          } else {
+            cart.push({ name: item.Название, qty: qtyToAdd, price: pricePerUnit });
+          }
+          renderCart();
+        };
 
+        content.appendChild(button);
         card.appendChild(content);
         cards.appendChild(card);
       });
     }
 
-    // Displays cart content
     function renderCart() {
       if (cart.length === 0) {
-        cartBox.classList.add("hidden"); // Hide cart if empty
+        cartBox.classList.add("hidden");
         return;
       }
-      cartBox.classList.remove("hidden"); // Show cart
-      cartItems.innerHTML = ""; // Clear current cart items
+      cartBox.classList.remove("hidden");
+      cartItems.innerHTML = "";
 
       cart.forEach((c, i) => {
         const itemDiv = document.createElement("div");
         itemDiv.className = "flex justify-between items-center";
-        // Display quantity in kg if >= 1000g, otherwise in units
-        // Total item cost: quantity * price per unit (or gram)
         itemDiv.innerHTML = `
           <span class="text-base">• ${c.name} × ${(c.qty >= 1000) ? (c.qty / 1000 + ' кг') : c.qty} — ${(c.qty * c.price).toFixed(0)} ₽</span>
           <button onclick="removeFromCart(${i})" class="text-blue-600 text-2xl font-bold ml-3">×</button>
@@ -205,15 +202,13 @@
       });
     }
 
-    // Removes item from cart
     function removeFromCart(index) {
-      cart.splice(index, 1); // Remove item by index
-      renderCart(); // Update cart display
+      cart.splice(index, 1);
+      renderCart();
     }
 
-    // Normalizes image URL (for Google Drive)
     function normalizeImage(url) {
-      if (!url) return "https://placehold.co/80x80/cccccc/333333?text=No+photo"; // Placeholder if no URL
+      if (!url) return "";
       if (url.includes("drive.google.com")) {
         const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
@@ -221,7 +216,6 @@
       return url.trim();
     }
 
-    // "Confirm Order" button handler
     confirm.onclick = () => {
       if (window.Telegram?.WebApp?.sendData) {
         const payload = {
