@@ -6,11 +6,13 @@
   <title>Меню</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     html, body {
       height: 100%;
       margin: 0;
       overflow-x: hidden;
+      font-family: 'Inter', sans-serif; /* Применяем шрифт Inter */
     }
     .backdrop-blur {
       backdrop-filter: blur(10px);
@@ -20,10 +22,11 @@
       font-weight: bold;
       color: black;
       white-space: nowrap;
+      border-bottom: 2px solid #3B82F6; /* Добавляем синюю полосу под активной вкладкой */
     }
   </style>
 </head>
-<body class="pb-[350px] text-sm font-sans">
+<body class="pb-[200px] text-sm">
   <!-- Статичный фон -->
   <div style="
     position: fixed;
@@ -31,7 +34,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: url('bakground.png') center top no-repeat;
+    background: url('background.png') center top no-repeat; /* Исправлена опечатка */
     background-size: cover;
     z-index: -1;
   "></div>
@@ -40,7 +43,7 @@
     <span class="text-xl font-bold">Меню</span>
   </div>
   <div id="tabs" class="flex gap-4 mt-2 border-b text-gray-700 bg-white bg-opacity-90 text-lg px-6 overflow-x-auto whitespace-nowrap"></div>
-  <div id="cards" class="space-y-4 px-6 py-4 pb-[400px]"></div>
+  <div id="cards" class="space-y-4 px-6 py-4 pb-[250px]"></div>
 
   <div id="cart" class="fixed bottom-0 left-0 right-0 z-50 hidden">
     <div class="bg-white rounded-t-xl shadow-[0_-8px_20px_rgba(0,0,0,0.2)] p-4 backdrop-blur">
@@ -81,8 +84,9 @@
           if (grouped[type]) grouped[type].push(item);
         });
 
+        // Создаем кнопки вкладок
         Object.entries(categories).forEach(([key, label]) => {
-          if (!grouped[key]?.length) return;
+          if (!grouped[key]?.length) return; // Пропускаем категории без элементов
           const btn = document.createElement("button");
           btn.className = "py-2 px-4";
           btn.textContent = label;
@@ -94,10 +98,13 @@
           tabs.appendChild(btn);
         });
 
+        // Устанавливаем активную вкладку по умолчанию и показываем ее содержимое
         setActiveTab("казан");
         showCategory("казан", grouped["казан"]);
-      });
+      })
+      .catch(error => console.error("Ошибка при загрузке данных из таблицы:", error));
 
+    // Устанавливает активную вкладку
     function setActiveTab(key) {
       [...tabs.children].forEach(btn => {
         if (btn.dataset.key === key) {
@@ -106,10 +113,12 @@
           btn.classList.remove("active-tab");
         }
       });
+      activeTab = key; // Обновляем активную вкладку
     }
 
+    // Отображает элементы выбранной категории
     function showCategory(type, items) {
-      cards.innerHTML = "";
+      cards.innerHTML = ""; // Очищаем текущие карточки
       items.forEach(item => {
         const card = document.createElement("div");
         card.className = "flex items-center bg-white bg-opacity-90 shadow rounded-xl p-3";
@@ -117,6 +126,9 @@
         const img = document.createElement("img");
         img.src = normalizeImage(item.Фото);
         img.className = "w-20 h-20 rounded-xl object-cover mr-4";
+        img.onerror = (e) => { // Обработка ошибок загрузки изображения
+          e.target.src = "https://placehold.co/80x80/cccccc/333333?text=Нет+фото";
+        };
         card.appendChild(img);
 
         const content = document.createElement("div");
@@ -128,53 +140,63 @@
           <div class="mb-2">Цена: ${item.Цена} ₽</div>
         `;
 
-            btn.onclick = () => {
-              const isGrams = item.Тип?.trim().toLowerCase() === 'граммы';
-              const qty = isGrams ? 1000 : 1;
-              const existing = cart.find(c => c.name === item.Название);
-              if (existing) {
-                existing.qty += qty;
-              } else {
-                const pricePerGram = isGrams ? (+item.Цена / 100) : +item.Цена;
-                cart.push({ name: item.Название, qty, price: pricePerGram });
-              }
-              renderCart();
-            };
+        // Создаем кнопку "Добавить"
+        const addButton = document.createElement("button");
+        addButton.className = "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md transition duration-200 ease-in-out";
+        addButton.textContent = "Добавить";
+        addButton.onclick = () => {
+          const isGrams = item.Тип?.trim().toLowerCase() === 'граммы';
+          // Если это "граммы", добавляем 1000г (1кг), иначе 1 единицу
+          const qtyToAdd = isGrams ? 1000 : 1;
+          const existing = cart.find(c => c.name === item.Название);
 
-                  
+          if (existing) {
+            existing.qty += qtyToAdd;
+          } else {
+            // Цена в таблице для "граммов" указана за 100г, поэтому делим на 100, чтобы получить цену за 1г
+            const pricePerUnit = isGrams ? (+item.Цена / 100) : +item.Цена;
+            cart.push({ name: item.Название, qty: qtyToAdd, price: pricePerUnit });
+          }
+          renderCart(); // Обновляем отображение корзины
+        };
+        content.appendChild(addButton); // Добавляем кнопку в блок содержимого
 
-        content.appendChild(btn);
         card.appendChild(content);
         cards.appendChild(card);
       });
     }
 
+    // Отображает содержимое корзины
     function renderCart() {
       if (cart.length === 0) {
-        cartBox.classList.add("hidden");
+        cartBox.classList.add("hidden"); // Скрываем корзину, если она пуста
         return;
       }
-      cartBox.classList.remove("hidden");
-      cartItems.innerHTML = "";
+      cartBox.classList.remove("hidden"); // Показываем корзину
+      cartItems.innerHTML = ""; // Очищаем текущие элементы корзины
 
       cart.forEach((c, i) => {
         const itemDiv = document.createElement("div");
         itemDiv.className = "flex justify-between items-center";
+        // Отображаем количество в кг, если >= 1000г, иначе в единицах
+        // Общая стоимость элемента: количество * цена за единицу (или грамм)
         itemDiv.innerHTML = `
-          <span class="text-base">• ${c.name} × ${(c.qty >= 1000) ? (c.qty / 1000 + ' кг') : c.qty} — ${c.qty * c.price} ₽</span>
+          <span class="text-base">• ${c.name} × ${(c.qty >= 1000) ? (c.qty / 1000 + ' кг') : c.qty} — ${(c.qty * c.price).toFixed(0)} ₽</span>
           <button onclick="removeFromCart(${i})" class="text-blue-600 text-2xl font-bold ml-3">×</button>
         `;
         cartItems.appendChild(itemDiv);
       });
     }
 
+    // Удаляет элемент из корзины
     function removeFromCart(index) {
-      cart.splice(index, 1);
-      renderCart();
+      cart.splice(index, 1); // Удаляем элемент по индексу
+      renderCart(); // Обновляем отображение корзины
     }
 
+    // Нормализует URL изображения (для Google Drive)
     function normalizeImage(url) {
-      if (!url) return "https://via.placeholder.com/300x200?text=Нет+фото";
+      if (!url) return "https://placehold.co/80x80/cccccc/333333?text=Нет+фото"; // Заглушка, если URL нет
       if (url.includes("drive.google.com")) {
         const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
@@ -182,6 +204,7 @@
       return url.trim();
     }
 
+    // Обработчик кнопки "Подтвердить заказ"
     confirm.onclick = () => {
       if (window.Telegram?.WebApp?.sendData) {
         const payload = {
