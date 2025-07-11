@@ -140,20 +140,15 @@
           <div class="mb-2">Цена: ${item.Цена} ₽</div>
         `;
 
-		// Определяем тип
-		const type = item.Тип?.trim().toLowerCase();
-		const isMenu = type === 'меню' || item.Название.toLowerCase().includes('банкет');
+        // Create "Add" button
+        const addButton = document.createElement("button");
+        addButton.className = "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md transition duration-200 ease-in-out";
+        addButton.textContent = "Добавить";
+        addButton.onclick = () => {
+		  const type = item.Тип?.trim().toLowerCase();
 
-		// Создаём кнопку
-		const button = document.createElement("button");
-		button.className = isMenu
-		  ? "bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md transition duration-200 ease-in-out"
-		  : "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md transition duration-200 ease-in-out";
-
-		button.textContent = isMenu ? "Посмотреть" : "Добавить";
-
-		button.onclick = () => {
-		  if (isMenu) {
+		  // 👉 Если это банкетное меню — открыть PDF по ссылке
+		  if (type === 'меню' || item.Название.toLowerCase().includes('банкет')) {
 			if (item.Фото) {
 			  window.open(item.Фото, "_blank");
 			} else {
@@ -180,7 +175,6 @@
 		  }
 		  renderCart();
 		};
-
 
         content.appendChild(addButton); // Add button to content block
 
