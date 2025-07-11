@@ -153,8 +153,10 @@
           if (existing) {
             existing.qty += qtyToAdd;
           } else {
-            // Цена в таблице для "граммов" указана за 100г, поэтому делим на 100, чтобы получить цену за 1г
-            const pricePerUnit = isGrams ? (+item.Цена / 100) : +item.Цена;
+            // ИЗМЕНЕНИЕ ЗДЕСЬ:
+            // Если тип "граммы", предполагаем, что Цена в таблице уже указана за 1000 грамм (1 кг).
+            // Поэтому делим на 1000, чтобы получить цену за 1 грамм.
+            const pricePerUnit = isGrams ? (+item.Цена / 1000) : +item.Цена;
             cart.push({ name: item.Название, qty: qtyToAdd, price: pricePerUnit });
           }
           renderCart(); // Обновляем отображение корзины
