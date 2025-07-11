@@ -145,26 +145,37 @@
         addButton.className = "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md transition duration-200 ease-in-out";
         addButton.textContent = "Добавить";
         addButton.onclick = () => {
-          const isGrams = item.Тип?.trim().toLowerCase() === 'граммы';
-          // If it's "grams", add 1000g (1kg), otherwise 1 unit
-          const qtyToAdd = isGrams ? 1000 : 1;
-          const existing = cart.find(c => c.name === item.Название);
+		  const type = item.Тип?.trim().toLowerCase();
 
-          let pricePerUnit;
-          if (isGrams) {
-            // Price in the table for "grams" is for 100g, so divide by 100 to get price per 1g
-            pricePerUnit = +item.Цена / 100;
-          } else {
-            pricePerUnit = +item.Цена;
-          }
+		  // 👉 Если это банкетное меню — открыть PDF по ссылке
+		  if (type === 'меню' || item.Название.toLowerCase().includes('банкет')) {
+			if (item.Фото) {
+			  window.open(item.Фото, "_blank");
+			} else {
+			  alert("📄 Файл банкетного меню не найден.");
+			}
+			return;
+		  }
 
-          if (existing) {
-            existing.qty += qtyToAdd;
-          } else {
-            cart.push({ name: item.Название, qty: qtyToAdd, price: pricePerUnit });
-          }
-          renderCart(); // Update cart display
-        };
+		  const isGrams = type === 'граммы';
+		  const qtyToAdd = isGrams ? 1000 : 1;
+		  const existing = cart.find(c => c.name === item.Название);
+
+		  let pricePerUnit;
+		  if (isGrams) {
+			pricePerUnit = +item.Цена / 100;
+		  } else {
+			pricePerUnit = +item.Цена;
+		  }
+
+		  if (existing) {
+			existing.qty += qtyToAdd;
+		  } else {
+			cart.push({ name: item.Название, qty: qtyToAdd, price: pricePerUnit });
+		  }
+		  renderCart();
+		};
+
         content.appendChild(addButton); // Add button to content block
 
         card.appendChild(content);
