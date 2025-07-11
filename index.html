@@ -128,20 +128,19 @@
           <div class="mb-2">Цена: ${item.Цена} ₽</div>
         `;
 
-        const btn = document.createElement("button");
-        btn.className = "bg-gray-100 w-full py-1 rounded-md text-center";
-        btn.textContent = "Добавить";
-        btn.onclick = () => {
-          const qty = item.Тип?.toLowerCase() === 'граммы' ? 1000 : 1;
-          const existing = cart.find(c => c.name === item.Название);
-          if (existing) {
-            existing.qty += qty;
-          } else {
-            const pricePerUnit = item.Тип?.toLowerCase() === 'граммы' ? (+item.Цена / 10) : +item.Цена;
-            cart.push({ name: item.Название, qty, price: pricePerUnit });
-          }
-          renderCart();
-        };
+            btn.onclick = () => {
+              const isGrams = item.Тип?.toLowerCase() === 'граммы';
+              const qty = isGrams ? 1000 : 1;
+              const existing = cart.find(c => c.name === item.Название);
+              if (existing) {
+                existing.qty += qty;
+              } else {
+                const pricePerGram = isGrams ? (+item.Цена / 100) : +item.Цена;
+                cart.push({ name: item.Название, qty, price: pricePerGram });
+              }
+              renderCart();
+            };
+                  
 
         content.appendChild(btn);
         card.appendChild(content);
