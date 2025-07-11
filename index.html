@@ -131,7 +131,7 @@
         btn.className = "bg-gray-100 w-full py-1 rounded-md text-center";
         btn.textContent = "Добавить";
         btn.onclick = () => {
-          const qty = item.Тип === 'граммы' ? 300 : 1;
+          const qty = item.Тип?.toLowerCase() === 'граммы' ? 1000 : 1;
           const existing = cart.find(c => c.name === item.Название);
           if (existing) {
             existing.qty += qty;
@@ -159,7 +159,7 @@
         const itemDiv = document.createElement("div");
         itemDiv.className = "flex justify-between items-center";
         itemDiv.innerHTML = `
-          <span class="text-base">• ${c.name} × ${c.qty} — ${c.qty * c.price} ₽</span>
+          <span class="text-base">• ${c.name} × ${(c.qty >= 1000) ? (c.qty / 1000 + ' кг') : c.qty} — ${c.qty * c.price} ₽</span>
           <button onclick="removeFromCart(${i})" class="text-blue-600 text-2xl font-bold ml-3">×</button>
         `;
         cartItems.appendChild(itemDiv);
