@@ -137,7 +137,8 @@
           if (existing) {
             existing.qty += qty;
           } else {
-            cart.push({ name: item.Название, qty, price: +item.Цена });
+            const pricePerUnit = item.Тип?.toLowerCase() === 'граммы' ? (+item.Цена / 10) : +item.Цена;
+            cart.push({ name: item.Название, qty, price: pricePerUnit });
           }
           renderCart();
         };
