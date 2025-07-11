@@ -129,7 +129,7 @@
         `;
 
             btn.onclick = () => {
-              const isGrams = item.Тип?.toLowerCase() === 'граммы';
+              const isGrams = item.Тип?.trim().toLowerCase() === 'граммы';
               const qty = isGrams ? 1000 : 1;
               const existing = cart.find(c => c.name === item.Название);
               if (existing) {
@@ -140,6 +140,7 @@
               }
               renderCart();
             };
+
                   
 
         content.appendChild(btn);
