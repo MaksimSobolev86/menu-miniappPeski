@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Меню</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js "></script>
+  <script src="https://cdn.tailwindcss.com "></script>
   <style>
     html, body {
       height: 100%;
@@ -36,17 +36,19 @@
       height: 40px;
       fill: #888;
     }
+    #modal-content br {
+      display: block;
+      margin-top: 6px;
+    }
   </style>
 </head>
 <body class="pb-[350px] text-sm font-sans">
-  <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('https://raw.githubusercontent.com/MaksimSobolev86/menu-miniappPeski/main/bakground.png') center top no-repeat; background-size: cover; z-index: -1;"></div>
-
+  <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('https://raw.githubusercontent.com/MaksimSobolev86/menu-miniappPeski/main/bakground.png ') center top no-repeat; background-size: cover; z-index: -1;"></div>
   <div class="flex items-center justify-start px-6 py-4 border-b bg-white bg-opacity-90">
     <span class="text-xl font-bold">Меню</span>
   </div>
   <div id="tabs" class="flex gap-4 mt-2 border-b text-gray-700 bg-white bg-opacity-90 text-lg px-6 overflow-x-auto whitespace-nowrap"></div>
-  <div id="cards" class="space-y-4 px-6 py-4 pb-[400px]"></div>
-
+  <div id="cards" class="space-y-4 px-6 py-4"></div>
   <div id="cart" class="fixed bottom-0 left-0 right-0 z-50 hidden">
     <div class="bg-white rounded-t-xl shadow-[0_-8px_20px_rgba(0,0,0,0.2)] p-4 backdrop-blur">
       <div class="font-semibold text-lg mb-2 pl-6">Корзина</div>
@@ -57,13 +59,60 @@
     </div>
   </div>
 
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full">
+      <button id="modal-close" class="absolute top-2 right-3 text-gray-500 text-2xl font-bold z-10">&times;</button>
+      <div class="max-h-[80vh] overflow-y-auto p-6 whitespace-pre-wrap text-sm text-gray-800" id="modal-content"></div>
+    </div>
+  </div>
+
   <script>
+    function htmlEscape(str) {
+      return (str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "<")
+        .replace(/>/g, ">")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatDescription(text) {
+      return (text || "")
+        .trim()
+        .replace(/(^|\n)([\p{Emoji_Presentation}\p{Extended_Pictographic}])/gu, '$1<br>$2')
+        .replace(/•/g, '<br>•')
+        .replace(/\n+/g, '<br>')
+        .replace(/(<br>\s*){2,}/g, '<br><br>');
+    }
+
+    function truncate(text, maxLength = 100) {
+      if (!text) return "";
+      const plain = text.replace(/<[^>]+>/g, ""); // убираем HTML, если есть
+      return plain.length > maxLength ? plain.slice(0, maxLength).trim() + "…" : plain;
+    }
+
+    function normalizeImage(url) {
+      if (!url) return "";
+      if (url.includes("drive.google.com")) {
+        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+      }
+      return url.trim();
+    }
+
+    function calculateTotal(qty, price, unit) {
+      return unit === "гр" ? (qty / 100) * price : qty * price;
+    }
+
     Telegram.WebApp.ready();
     Telegram.WebApp.expand();
+
     let cart = [];
+
     const categories = {
       "казан": "Казан",
       "граммы": "Мангал",
+      "активность": "Активность",
       "меню": "Банкетное меню"
     };
 
@@ -72,17 +121,24 @@
     const cartBox = document.getElementById("cart");
     const cartItems = document.getElementById("cart-items");
     const confirm = document.getElementById("confirm");
+    const modal = document.getElementById("modal");
+    const modalContent = document.getElementById("modal-content");
+    const modalClose = document.getElementById("modal-close");
 
-    const sheetUrl = "https://opensheet.elk.sh/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu";
+    const sheetUrl = " https://opensheet.elk.sh/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu ";
 
     fetch(sheetUrl)
       .then((res) => res.json())
       .then((data) => {
         const grouped = {};
         Object.keys(categories).forEach(k => grouped[k] = []);
+
         data.forEach(item => {
-          const type = item.Тип?.trim().toLowerCase();
-          if (grouped[type]) grouped[type].push(item);
+          const typeRaw = item.Тип || "";
+          const normalizedType = typeRaw.trim().toLowerCase();
+          if (Object.keys(grouped).includes(normalizedType)) {
+            grouped[normalizedType].push(item);
+          }
         });
 
         Object.entries(categories).forEach(([key, label]) => {
@@ -100,6 +156,10 @@
 
         setActiveTab("казан");
         showCategory("казан", grouped["казан"]);
+      })
+      .catch(err => {
+        console.error("Ошибка загрузки данных:", err);
+        alert("Не удалось загрузить меню. Попробуйте позже.");
       });
 
     function setActiveTab(key) {
@@ -112,90 +172,124 @@
       });
     }
 
-    function showCategory(type, items) {
+    function showCategory(tabKey, items) {
       cards.innerHTML = "";
       items.forEach(item => {
         const card = document.createElement("div");
-        card.className = "flex items-center bg-white bg-opacity-90 shadow rounded-xl p-3";
+        card.className = "flex items-start bg-white bg-opacity-90 shadow rounded-xl p-3 gap-4";
 
-        const type = item.Тип?.trim().toLowerCase();
-        const isMenu = type === 'меню' || item.Название.toLowerCase().includes('банкет');
+        const itemType = (item.Тип || "").trim().toLowerCase();
+        const isBanquetMenu = itemType === 'меню' || item.Название.toLowerCase().includes('банкет');
+        const isActivity = itemType === 'активность';
 
+        // Фото или иконка
         let mediaBlock;
-        if (isMenu) {
+        if (itemType === "меню") {
           mediaBlock = document.createElement("div");
           mediaBlock.className = "placeholder-icon";
-          mediaBlock.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3h-1V2h-2v1H8V2H6v1H5c-1.1 0-2 .9-2 2v15c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 17H5V8h14v12z"/></svg>`;
+          mediaBlock.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M19 3h-1V2h-2v1H8V2H6v1H5c-1.1 0-2 .9-2 2v15c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 17H5V8h14v12z"/>
+            </svg>`;
         } else {
           mediaBlock = document.createElement("img");
-          const normalized = normalizeImage(item.Фото);
-          mediaBlock.src = normalized || "https://placehold.co/80x80/eeeeee/aaaaaa?text=";
-          mediaBlock.className = "w-20 h-20 rounded-xl object-cover mr-4";
+          const firstImage = (item.Фото || "").split(",")[0]?.trim() || "";
+          mediaBlock.src = normalizeImage(firstImage) || "https://placehold.co/80x80/eeeeee/aaaaaa?text=%20";
+          mediaBlock.className = "w-20 h-20 rounded-xl object-cover";
         }
         mediaBlock.classList.add("mr-4");
         card.appendChild(mediaBlock);
 
+        // Контент
         const content = document.createElement("div");
         content.className = "flex-1";
+        const description = item.Описание?.trim() || "";
+        const shortDescription = truncate(description, 100);
+        const isLong = description.length > 100;
 
         content.innerHTML = `
-          <div class="font-semibold mb-1">${item.Название}</div>
-          <div class="text-gray-500 text-sm mb-1">${item.Описание || ""}</div>
+          <div class="font-semibold mb-1">${htmlEscape(item.Название)}</div>
+          <div class="text-gray-500 text-sm mb-1">${formatDescription(htmlEscape(shortDescription))}</div>
           <div class="mb-2">Цена: ${item.Цена} ₽</div>
         `;
 
-        const button = document.createElement("button");
-        button.className = isMenu
-          ? "bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md"
-          : "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md";
-
-        button.textContent = isMenu ? "Посмотреть" : "Добавить";
-
-        button.onclick = () => {
-          if (isMenu) {
-            const githubUrl = item.Фото?.trim();
-            const rawUrl = githubUrl?.replace("https://github.com/", "https://raw.githubusercontent.com/").replace("/blob/", "/");
+        if (itemType === "меню") {
+          const viewBtn = document.createElement("button");
+          viewBtn.className = "bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md mr-2";
+          viewBtn.textContent = "Посмотреть";
+          viewBtn.onclick = () => {
+            const githubUrl = (item.Фото || "").trim();
+            const rawUrl = githubUrl
+              .replace(" https://github.com/ ", "https://raw.githubusercontent.com/ ")
+              .replace("/blob/", "/");
             if (rawUrl) {
               window.open(rawUrl, "_blank");
             } else {
-              alert("📄 Файл банкетного меню не найден.");
+              alert("Файл не найден");
             }
-            return;
-          }
+          };
+          content.appendChild(viewBtn);
+        }
 
-          const isGrams = type === 'граммы';
-          const qtyToAdd = isGrams ? 1000 : 1;
-          const existing = cart.find(c => c.name === item.Название);
+        if (itemType === "активность") {
+          const viewBtn = document.createElement("button");
+          viewBtn.className = "bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md mr-2";
+          viewBtn.textContent = "Посмотреть";
+          viewBtn.onclick = () => showModal(description, item.Фото);
+          content.appendChild(viewBtn);
+          content.appendChild(createAddButton(item));
+        }
 
-          let pricePerUnit = isGrams ? +item.Цена / 100 : +item.Цена;
+        if (!isBanquetMenu && !isActivity) {
+          content.appendChild(createAddButton(item));
+        }
 
-          if (existing) {
-            existing.qty += qtyToAdd;
-          } else {
-            cart.push({ name: item.Название, qty: qtyToAdd, price: pricePerUnit });
-          }
-          renderCart();
-        };
-
-        content.appendChild(button);
         card.appendChild(content);
         cards.appendChild(card);
       });
     }
 
+    function createAddButton(item) {
+      const step = parseInt(item["Шаг"]) || 1;
+      const minQty = parseInt(item["Мин"]) || step;
+      const unit = (item["Ед. изм."] || "").trim();
+      const price = parseFloat(item["Цена"]);
+
+      const addBtn = document.createElement("button");
+      addBtn.className = "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md";
+      addBtn.textContent = "Добавить";
+      addBtn.onclick = () => {
+        const existing = cart.find(c => c.name === item.Название);
+        if (existing) {
+          existing.qty += step;
+        } else {
+          cart.push({
+            name: item.Название,
+            qty: minQty,
+            price: price,
+            unit: unit
+          });
+        }
+        renderCart();
+      };
+      return addBtn;
+    }
+
     function renderCart() {
-      if (cart.length === 0) {
+      if (!cart.length) {
         cartBox.classList.add("hidden");
         return;
       }
       cartBox.classList.remove("hidden");
       cartItems.innerHTML = "";
-
       cart.forEach((c, i) => {
+        const total = calculateTotal(c.qty, c.price, c.unit);
         const itemDiv = document.createElement("div");
         itemDiv.className = "flex justify-between items-center";
         itemDiv.innerHTML = `
-          <span class="text-base">• ${c.name} × ${(c.qty >= 1000) ? (c.qty / 1000 + ' кг') : c.qty} — ${(c.qty * c.price).toFixed(0)} ₽</span>
+          <span class="text-base">
+            • ${htmlEscape(c.name)} × ${c.qty} ${c.unit || ""} — ${total.toFixed(0)} ₽
+          </span>
           <button onclick="removeFromCart(${i})" class="text-blue-600 text-2xl font-bold ml-3">×</button>
         `;
         cartItems.appendChild(itemDiv);
@@ -207,26 +301,45 @@
       renderCart();
     }
 
-    function normalizeImage(url) {
-      if (!url) return "";
-      if (url.includes("drive.google.com")) {
-        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-      }
-      return url.trim();
-    }
-
     confirm.onclick = () => {
+      if (!cart.length) {
+        alert("Корзина пуста!");
+        return;
+      }
       if (window.Telegram?.WebApp?.sendData) {
         const payload = {
           items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
-          total: cart.reduce((sum, c) => sum + c.qty * c.price, 0),
+          total: cart.reduce((sum, c) => sum + calculateTotal(c.qty, c.price, c.unit), 0),
           telegram_id: window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null
         };
-        Telegram.WebApp.sendData(JSON.stringify(payload));
-        Telegram.WebApp.close();
+        try {
+          Telegram.WebApp.sendData(JSON.stringify(payload));
+          Telegram.WebApp.close();
+        } catch (e) {
+          console.error("Ошибка отправки данных:", e);
+          alert("Не удалось отправить заказ.");
+        }
+      } else {
+        alert("Telegram WebApp недоступен.");
       }
     };
+
+    modalClose.onclick = (e) => {
+      e.preventDefault();
+      modal.classList.add("hidden");
+    };
+
+    function showModal(text, imageUrl = "") {
+      const formatted = formatDescription(htmlEscape(text));
+      modalContent.innerHTML = `
+        <div class="mb-4">${formatted}</div>
+        ${imageUrl ? `<img src="${normalizeImage(imageUrl)}" class="w-full rounded-xl mt-2" alt="Изображение" />` : ""}
+      `;
+      modal.classList.remove("hidden");
+    }
+
+    // Глобально делаем доступной функцию для кнопок
+    window.removeFromCart = removeFromCart;
   </script>
 </body>
 </html>
