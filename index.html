@@ -58,7 +58,6 @@
       </div>
     </div>
   </div>
-
   <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full">
       <button id="modal-close" class="absolute top-2 right-3 text-gray-500 text-2xl font-bold z-10">&times;</button>
@@ -87,7 +86,7 @@
 
     function truncate(text, maxLength = 100) {
       if (!text) return "";
-      const plain = text.replace(/<[^>]+>/g, ""); // убираем HTML, если есть
+      const plain = text.replace(/<[^>]+>/g, "");
       return plain.length > maxLength ? plain.slice(0, maxLength).trim() + "…" : plain;
     }
 
@@ -100,8 +99,21 @@
       return url.trim();
     }
 
-    function calculateTotal(qty, price, unit) {
-      return unit === "гр" ? (qty / 100) * price : qty * price;
+    function calculateTotal(qty, price, unit, customPriceJson) {
+      if (unit === "гр") {
+        return (qty / 100) * price;
+      }
+      if (customPriceJson) {
+        try {
+          const priceMap = JSON.parse(customPriceJson);
+          if (qty === 0.5 && priceMap["0.5"] !== undefined) {
+            return priceMap["0.5"];
+          }
+        } catch (e) {
+          console.warn("Invalid JSON in Цена JSON:", customPriceJson);
+        }
+      }
+      return qty * price;
     }
 
     Telegram.WebApp.ready();
@@ -128,8 +140,8 @@
     const sheetUrl = " https://opensheet.elk.sh/1L_ymP4fcpKC-oMuMqDLK1SVMGTnPCtWaSM0fOKW8KJw/menu ";
 
     fetch(sheetUrl)
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         const grouped = {};
         Object.keys(categories).forEach(k => grouped[k] = []);
 
@@ -137,6 +149,14 @@
           const typeRaw = item.Тип || "";
           const normalizedType = typeRaw.trim().toLowerCase();
           if (Object.keys(grouped).includes(normalizedType)) {
+            if (item["Цена JSON"]) {
+              try {
+                JSON.parse(item["Цена JSON"]);
+              } catch (e) {
+                console.warn(`Invalid JSON for ${item.Название}:`, item["Цена JSON"]);
+                item["Цена JSON"] = "";
+              }
+            }
             grouped[normalizedType].push(item);
           }
         });
@@ -159,16 +179,12 @@
       })
       .catch(err => {
         console.error("Ошибка загрузки данных:", err);
-        alert("Не удалось загрузить меню. Попробуйте позже.");
+        alert("Не удалось загрузить меню.");
       });
 
     function setActiveTab(key) {
       [...tabs.children].forEach(btn => {
-        if (btn.dataset.key === key) {
-          btn.classList.add("active-tab");
-        } else {
-          btn.classList.remove("active-tab");
-        }
+        btn.classList.toggle("active-tab", btn.dataset.key === key);
       });
     }
 
@@ -182,7 +198,6 @@
         const isBanquetMenu = itemType === 'меню' || item.Название.toLowerCase().includes('банкет');
         const isActivity = itemType === 'активность';
 
-        // Фото или иконка
         let mediaBlock;
         if (itemType === "меню") {
           mediaBlock = document.createElement("div");
@@ -200,12 +215,11 @@
         mediaBlock.classList.add("mr-4");
         card.appendChild(mediaBlock);
 
-        // Контент
         const content = document.createElement("div");
         content.className = "flex-1";
+
         const description = item.Описание?.trim() || "";
         const shortDescription = truncate(description, 100);
-        const isLong = description.length > 100;
 
         content.innerHTML = `
           <div class="font-semibold mb-1">${htmlEscape(item.Название)}</div>
@@ -222,11 +236,7 @@
             const rawUrl = githubUrl
               .replace(" https://github.com/ ", "https://raw.githubusercontent.com/ ")
               .replace("/blob/", "/");
-            if (rawUrl) {
-              window.open(rawUrl, "_blank");
-            } else {
-              alert("Файл не найден");
-            }
+            rawUrl ? window.open(rawUrl, "_blank") : alert("Файл не найден");
           };
           content.appendChild(viewBtn);
         }
@@ -250,10 +260,14 @@
     }
 
     function createAddButton(item) {
-      const step = parseInt(item["Шаг"]) || 1;
-      const minQty = parseInt(item["Мин"]) || step;
-      const unit = (item["Ед. изм."] || "").trim();
+      const step = parseFloat(item["Шаг"]) || 1;
+      const minQty = parseFloat(item["Мин"]) || step;
+      const unit = item["Ед. изм."]?.trim() || "";
       const price = parseFloat(item["Цена"]);
+      const customPriceJson = item["Цена JSON"]?.trim() || "";
+
+      const validStep = isNaN(step) || step <= 0 ? 1 : Math.round(step * 10) / 10;
+      const validMinQty = isNaN(minQty) || minQty <= 0 ? validStep : Math.round(minQty * 10) / 10;
 
       const addBtn = document.createElement("button");
       addBtn.className = "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md";
@@ -261,13 +275,14 @@
       addBtn.onclick = () => {
         const existing = cart.find(c => c.name === item.Название);
         if (existing) {
-          existing.qty += step;
+          existing.qty = Math.round((existing.qty + validStep) * 10) / 10;
         } else {
           cart.push({
             name: item.Название,
-            qty: minQty,
+            qty: validMinQty,
             price: price,
-            unit: unit
+            unit: unit,
+            customPriceJson: customPriceJson
           });
         }
         renderCart();
@@ -283,7 +298,7 @@
       cartBox.classList.remove("hidden");
       cartItems.innerHTML = "";
       cart.forEach((c, i) => {
-        const total = calculateTotal(c.qty, c.price, c.unit);
+        const total = calculateTotal(c.qty, c.price, c.unit, c.customPriceJson);
         const itemDiv = document.createElement("div");
         itemDiv.className = "flex justify-between items-center";
         itemDiv.innerHTML = `
@@ -306,21 +321,25 @@
         alert("Корзина пуста!");
         return;
       }
-      if (window.Telegram?.WebApp?.sendData) {
+      if (Telegram.WebApp.sendData) {
         const payload = {
-          items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
-          total: cart.reduce((sum, c) => sum + calculateTotal(c.qty, c.price, c.unit), 0),
-          telegram_id: window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null
+          items: cart.map(c => ({
+            name: c.name,
+            qty: c.qty,
+            price: c.price,
+            unit: c.unit,
+            total: calculateTotal(c.qty, c.price, c.unit, c.customPriceJson)
+          })),
+          total: cart.reduce((sum, c) => sum + calculateTotal(c.qty, c.price, c.unit, c.customPriceJson), 0),
+          telegram_id: Telegram.WebApp.initDataUnsafe?.user?.id || null
         };
         try {
           Telegram.WebApp.sendData(JSON.stringify(payload));
           Telegram.WebApp.close();
         } catch (e) {
-          console.error("Ошибка отправки данных:", e);
-          alert("Не удалось отправить заказ.");
+          console.error("Send error:", e);
+          alert("Ошибка отправки заказа.");
         }
-      } else {
-        alert("Telegram WebApp недоступен.");
       }
     };
 
@@ -333,12 +352,11 @@
       const formatted = formatDescription(htmlEscape(text));
       modalContent.innerHTML = `
         <div class="mb-4">${formatted}</div>
-        ${imageUrl ? `<img src="${normalizeImage(imageUrl)}" class="w-full rounded-xl mt-2" alt="Изображение" />` : ""}
+        ${imageUrl ? `<img src="${normalizeImage(imageUrl)}" class="w-full rounded-xl mt-2" alt="Фото" />` : ""}
       `;
       modal.classList.remove("hidden");
     }
 
-    // Глобально делаем доступной функцию для кнопок
     window.removeFromCart = removeFromCart;
   </script>
 </body>
