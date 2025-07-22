@@ -49,6 +49,8 @@
   </div>
   <div id="tabs" class="flex gap-4 mt-2 border-b text-gray-700 bg-white bg-opacity-90 text-lg px-6 overflow-x-auto whitespace-nowrap"></div>
   <div id="cards" class="space-y-4 px-6 py-4"></div>
+
+  <!-- Корзина -->
   <div id="cart" class="fixed bottom-0 left-0 right-0 z-50 hidden">
     <div class="bg-white rounded-t-xl shadow-[0_-8px_20px_rgba(0,0,0,0.2)] p-4 backdrop-blur">
       <div class="font-semibold text-lg mb-2 pl-6">Корзина</div>
@@ -58,6 +60,8 @@
       </div>
     </div>
   </div>
+
+  <!-- Модальное окно -->
   <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full">
       <button id="modal-close" class="absolute top-2 right-3 text-gray-500 text-2xl font-bold z-10">&times;</button>
@@ -66,6 +70,7 @@
   </div>
 
   <script>
+    // Экранирование HTML
     function htmlEscape(str) {
       return (str || "")
         .replace(/&/g, "&amp;")
@@ -75,6 +80,7 @@
         .replace(/'/g, "&#039;");
     }
 
+    // Форматирование описания
     function formatDescription(text) {
       return (text || "")
         .trim()
@@ -84,12 +90,14 @@
         .replace(/(<br>\s*){2,}/g, '<br><br>');
     }
 
+    // Обрезка текста
     function truncate(text, maxLength = 100) {
       if (!text) return "";
       const plain = text.replace(/<[^>]+>/g, "");
       return plain.length > maxLength ? plain.slice(0, maxLength).trim() + "…" : plain;
     }
 
+    // Нормализация ссылки на фото
     function normalizeImage(url) {
       if (!url) return "";
       if (url.includes("drive.google.com")) {
@@ -99,6 +107,7 @@
       return url.trim();
     }
 
+    // Расчёт стоимости с поддержкой фиксированной цены для 0.5
     function calculateTotal(qty, price, unit, customPriceJson) {
       if (unit === "гр") {
         return (qty / 100) * price;
@@ -116,6 +125,7 @@
       return qty * price;
     }
 
+    // Инициализация Telegram
     Telegram.WebApp.ready();
     Telegram.WebApp.expand();
 
@@ -149,6 +159,7 @@
           const typeRaw = item.Тип || "";
           const normalizedType = typeRaw.trim().toLowerCase();
           if (Object.keys(grouped).includes(normalizedType)) {
+            // Валидация JSON
             if (item["Цена JSON"]) {
               try {
                 JSON.parse(item["Цена JSON"]);
@@ -198,6 +209,14 @@
         const isBanquetMenu = itemType === 'меню' || item.Название.toLowerCase().includes('банкет');
         const isActivity = itemType === 'активность';
 
+        // Парсинг фото
+        const photoList = (item.Фото || "")
+          .split(",")
+          .map(url => url.trim())
+          .filter(url => url);
+        const firstImage = photoList[0] || "";
+
+        // Фото или иконка
         let mediaBlock;
         if (itemType === "меню") {
           mediaBlock = document.createElement("div");
@@ -208,13 +227,13 @@
             </svg>`;
         } else {
           mediaBlock = document.createElement("img");
-          const firstImage = (item.Фото || "").split(",")[0]?.trim() || "";
           mediaBlock.src = normalizeImage(firstImage) || "https://placehold.co/80x80/eeeeee/aaaaaa?text=%20";
           mediaBlock.className = "w-20 h-20 rounded-xl object-cover";
         }
         mediaBlock.classList.add("mr-4");
         card.appendChild(mediaBlock);
 
+        // Контент
         const content = document.createElement("div");
         content.className = "flex-1";
 
@@ -337,8 +356,8 @@
           Telegram.WebApp.sendData(JSON.stringify(payload));
           Telegram.WebApp.close();
         } catch (e) {
-          console.error("Send error:", e);
-          alert("Ошибка отправки заказа.");
+          console.error("Ошибка отправки:", e);
+          alert("Не удалось отправить заказ.");
         }
       }
     };
@@ -348,11 +367,24 @@
       modal.classList.add("hidden");
     };
 
-    function showModal(text, imageUrl = "") {
+    function showModal(text, imageUrlString = "") {
       const formatted = formatDescription(htmlEscape(text));
+
+      const photoUrls = imageUrlString
+        ? imageUrlString
+            .split(",")
+            .map(url => url.trim())
+            .filter(url => url)
+            .map(url => normalizeImage(url))
+        : [];
+
+      const photosHtml = photoUrls.length
+        ? photoUrls.map(url => `<img src="${url}" class="w-full rounded-xl mt-2" alt="Фото" style="margin-top: 1rem;">`).join("")
+        : "";
+
       modalContent.innerHTML = `
         <div class="mb-4">${formatted}</div>
-        ${imageUrl ? `<img src="${normalizeImage(imageUrl)}" class="w-full rounded-xl mt-2" alt="Фото" />` : ""}
+        ${photosHtml}
       `;
       modal.classList.remove("hidden");
     }
