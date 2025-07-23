@@ -135,7 +135,7 @@
       "казан": "Казан",
       "граммы": "Мангал",
       "досуг": "Досуг",
-      "меню": "Банкетное меню" // ← без (р)
+      "меню": "Банкетное меню"
     };
 
     const tabs = document.getElementById("tabs");
@@ -207,7 +207,7 @@
 
         const itemType = (item.Тип || "").trim().toLowerCase();
         const isBanquetMenu = itemType === 'меню' || item.Название.toLowerCase().includes('банкет');
-        const isLeisure = itemType === 'досуг'; // ✅ исправлено: досуг
+        const isLeisure = itemType === 'досуг';
 
         // Парсинг фото
         const photoList = (item.Фото || "")
@@ -251,11 +251,15 @@
           viewBtn.className = "bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md mr-2";
           viewBtn.textContent = "Посмотреть";
           viewBtn.onclick = () => {
-            const githubUrl = (item.Фото || "").trim();
-            const rawUrl = githubUrl
+            const photoUrl = (item.Фото || "").trim();
+            if (!photoUrl) {
+              alert("Ссылка не найдена");
+              return;
+            }
+            const rawUrl = photoUrl
               .replace(" https://github.com/ ", "https://raw.githubusercontent.com/ ")
               .replace("/blob/", "/");
-            rawUrl ? window.open(rawUrl, "_blank") : alert("Файл не найден");
+            window.open(rawUrl, "_blank");
           };
           content.appendChild(viewBtn);
         }
