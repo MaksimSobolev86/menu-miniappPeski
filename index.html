@@ -135,7 +135,7 @@
       "казан": "Казан",
       "граммы": "Мангал",
       "досуг": "Досуг",
-      "меню": "Банкетное меню"
+      "меню": "Банкетное меню" // ← без (р)
     };
 
     const tabs = document.getElementById("tabs");
@@ -207,7 +207,7 @@
 
         const itemType = (item.Тип || "").trim().toLowerCase();
         const isBanquetMenu = itemType === 'меню' || item.Название.toLowerCase().includes('банкет');
-        const isActivity = itemType === 'досуг';
+        const isLeisure = itemType === 'досуг'; // ✅ исправлено: досуг
 
         // Парсинг фото
         const photoList = (item.Фото || "")
@@ -260,7 +260,7 @@
           content.appendChild(viewBtn);
         }
 
-        if (itemType ) {
+        if (isLeisure) {
           const viewBtn = document.createElement("button");
           viewBtn.className = "bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm mt-2 shadow-md mr-2";
           viewBtn.textContent = "Посмотреть";
@@ -269,7 +269,7 @@
           content.appendChild(createAddButton(item));
         }
 
-        if (!isBanquetMenu && !isActivity) {
+        if (!isBanquetMenu && !isLeisure) {
           content.appendChild(createAddButton(item));
         }
 
