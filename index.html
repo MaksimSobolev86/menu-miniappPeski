@@ -207,7 +207,7 @@
 
         const itemType = (item.Тип || "").trim().toLowerCase();
         const isBanquetMenu = itemType === 'меню' || item.Название.toLowerCase().includes('банкет');
-        const isActivity = itemType === 'активность';
+        const isActivity = itemType === 'досуг';
 
         // Парсинг фото
         const photoList = (item.Фото || "")
