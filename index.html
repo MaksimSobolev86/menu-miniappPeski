@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -252,17 +253,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${mediaHTML}
                 <div class="flex-1">
                     <h3 class="font-semibold text-base sm:text-lg mb-1 text-gray-900 dark:text-white">${htmlEscape(name)}</h3>
-                    ${shortDescription ? `<div class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mb-2" dangerouslySetInnerHTML={{__html: formattedShortDescription}}>${formattedShortDescription}</div>` : ''}
+                    ${shortDescription ? `<div class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mb-2">${formattedShortDescription}</div>` : ''}
                     ${!isBanquetMenu ? `<div class="mb-3 text-base sm:text-lg font-semibold text-black dark:text-white">${price} ₽ ${unit ? `<span class="text-xs sm:text-sm font-normal text-gray-600 dark:text-gray-400">/ ${unit}</span>` : ''}</div>` : ''}
                     <div class="flex items-center flex-wrap gap-2">${buttonsHTML}</div>
                 </div>
             </div>`;
     }).join('');
-    // Re-bind the dangerouslySetInnerHTML content correctly. This is a simple workaround for this conversion.
-    document.querySelectorAll('[dangerouslySetInnerHTML]').forEach(el => {
-        const html = el.getAttribute('dangerouslySetInnerHTML').match(/__html: '(.+)'/)[1];
-        if (html) el.innerHTML = html.replace(/\\'/g, "'");
-    });
   };
 
   const renderCart = () => {
